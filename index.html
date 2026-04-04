@@ -109,6 +109,9 @@
         <span class="text-lg font-bold tracking-tight">Ma<span class="text-emerald-600">Mony</span></span>
       </div>
       <div class="flex items-center gap-2">
+        <button id="btnManageCats" title="Manage categories" class="icon-btn">
+          <i class="fa-solid fa-tags text-sm"></i>
+        </button>
         <button id="btnOpenImport" title="Import data" class="icon-btn">
           <i class="fa-solid fa-upload text-sm"></i>
         </button>
@@ -257,6 +260,44 @@
 
   <!-- Toast -->
   <div id="toast" class="toast" role="alert" aria-live="assertive"></div>
+
+  <!-- Category Management Modal -->
+  <div id="catModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-label="Manage categories">
+    <div class="modal-box cat-modal-box">
+
+      <div class="flex items-center justify-between mb-4">
+        <p class="text-sm font-semibold" style="color:var(--text-1)">Manage Categories</p>
+        <button id="catModalClose" class="tx-delete" aria-label="Close">
+          <i class="fa-solid fa-xmark text-xs pointer-events-none"></i>
+        </button>
+      </div>
+
+      <div class="type-toggle mb-4" role="group" aria-label="Category type">
+        <button id="catTabExpense" class="type-btn active-expense">
+          <i class="fa-solid fa-arrow-down text-xs mr-1"></i>Expenses
+        </button>
+        <button id="catTabIncome" class="type-btn">
+          <i class="fa-solid fa-arrow-up text-xs mr-1"></i>Income
+        </button>
+      </div>
+
+      <div id="catList" class="cat-list"></div>
+
+      <div class="cat-divider"></div>
+
+      <p class="form-label mb-2">New category</p>
+      <input id="newCatName" type="text" placeholder="Category name…"
+        maxlength="30" class="form-input mb-3" autocomplete="off" />
+
+      <p class="form-label mb-1">Icon</p>
+      <div id="iconPicker" class="icon-picker"></div>
+
+      <button id="btnAddCat" type="button" class="submit-btn expense-mode" style="margin-top:12px">
+        <i class="fa-solid fa-plus text-xs mr-1.5"></i>Add Category
+      </button>
+
+    </div>
+  </div>
 
   <!-- Confirm Delete Modal -->
   <div id="deleteModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="modalTitle">

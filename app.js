@@ -33,6 +33,23 @@ const CATEGORIES = {
   ],
 };
 
+const CUSTOM_CATS_KEY = 'mamony_custom_categories';
+
+const PICKABLE_ICONS = [
+  'fa-utensils','fa-coffee','fa-pizza-slice','fa-wine-glass',
+  'fa-car','fa-bus','fa-bicycle','fa-plane','fa-train','fa-taxi',
+  'fa-house','fa-building','fa-store','fa-hotel',
+  'fa-bolt','fa-droplet','fa-fire','fa-wifi',
+  'fa-heart-pulse','fa-pills','fa-dumbbell','fa-stethoscope',
+  'fa-bag-shopping','fa-shirt','fa-gem','fa-scissors',
+  'fa-film','fa-music','fa-gamepad','fa-tv',
+  'fa-book','fa-graduation-cap','fa-palette','fa-pen',
+  'fa-paw','fa-baby','fa-users','fa-user-tie',
+  'fa-briefcase','fa-laptop','fa-chart-line','fa-gift',
+  'fa-wrench','fa-phone','fa-globe','fa-leaf',
+  'fa-wallet','fa-piggy-bank','fa-coins','fa-credit-card',
+];
+
 const ALL_CATS = [...CATEGORIES.income, ...CATEGORIES.expense];
 
 const CHART_PALETTE = [
@@ -47,9 +64,12 @@ let transactions    = [];
 let currentType     = 'income';
 let viewYear        = new Date().getFullYear();
 let viewMonth       = new Date().getMonth(); // 0-indexed
-let pendingDeleteId = null;
-let chartMode       = 'expense';
-let chartInstance   = null;
+let pendingDeleteId   = null;
+let chartMode         = 'expense';
+let chartInstance     = null;
+let customCategories  = { income: [], expense: [] };
+let catModalType      = 'expense';
+let selectedIcon      = PICKABLE_ICONS[0];
 
 // ─── Dark mode ────────────────────────────────────────────────────────────────
 
@@ -88,8 +108,16 @@ function monthLabel(year, month) {
     .format(new Date(year, month, 1));
 }
 
+function getCatsForType(type) {
+  return [...CATEGORIES[type], ...customCategories[type]];
+}
+
+function getAllCatsList() {
+  return [...getCatsForType('income'), ...getCatsForType('expense')];
+}
+
 function getCatMeta(categoryId) {
-  return ALL_CATS.find(c => c.id === categoryId) || { label: categoryId, icon: 'fa-circle' };
+  return getAllCatsList().find(c => c.id === categoryId) || { label: categoryId, icon: 'fa-circle' };
 }
 
 function clamp(value, min, max) {
@@ -117,6 +145,29 @@ function loadTransactions() {
 
 function saveTransactions() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(transactions));
+}
+
+function loadCustomCategories() {
+  try {
+    const raw = localStorage.getItem(CUSTOM_CATS_KEY);
+    if (!raw) return { income: [], expense: [] };
+    const parsed = JSON.parse(raw);
+    const valid = { income: [], expense: [] };
+    ['income', 'expense'].forEach(t => {
+      if (Array.isArray(parsed[t])) {
+        valid[t] = parsed[t].filter(c =>
+          c && typeof c.id === 'string' &&
+          typeof c.label === 'string' &&
+          typeof c.icon === 'string'
+        );
+      }
+    });
+    return valid;
+  } catch { return { income: [], expense: [] }; }
+}
+
+function saveCustomCategories() {
+  localStorage.setItem(CUSTOM_CATS_KEY, JSON.stringify(customCategories));
 }
 
 // ─── Derived data ─────────────────────────────────────────────────────────────
@@ -373,7 +424,7 @@ function escapeHtml(str) {
 function populateCategorySelect(type) {
   const sel = document.getElementById('category');
   sel.innerHTML = '';
-  CATEGORIES[type].forEach(cat => {
+  getCatsForType(type).forEach(cat => {
     const opt = new Option(cat.label, cat.id);
     sel.add(opt);
   });
@@ -593,10 +644,134 @@ function nextMonth() {
   renderAll();
 }
 
+// ─── Category Management ──────────────────────────────────────────────────────
+
+function openCatModal() {
+  catModalType = currentType;
+  document.getElementById('catModal').classList.remove('hidden');
+  setCatTab(catModalType);
+}
+
+function closeCatModal() {
+  document.getElementById('catModal').classList.add('hidden');
+  document.getElementById('newCatName').value = '';
+  selectedIcon = PICKABLE_ICONS[0];
+}
+
+function setCatTab(type) {
+  catModalType = type;
+  const expBtn = document.getElementById('catTabExpense');
+  const incBtn = document.getElementById('catTabIncome');
+  expBtn.className = 'type-btn' + (type === 'expense' ? ' active-expense' : '');
+  incBtn.className = 'type-btn' + (type === 'income'  ? ' active-income'  : '');
+
+  const addBtn = document.getElementById('btnAddCat');
+  addBtn.className = 'submit-btn ' + (type === 'income' ? 'income-mode' : 'expense-mode');
+
+  document.getElementById('catModal').dataset.type = type;
+  selectedIcon = PICKABLE_ICONS[0];
+  renderCatList();
+  renderIconPicker();
+}
+
+function renderCatList() {
+  const list = document.getElementById('catList');
+  const cats = getCatsForType(catModalType);
+  list.innerHTML = '';
+
+  if (cats.length === 0) {
+    list.innerHTML = '<p class="cat-empty">No categories yet.</p>';
+    return;
+  }
+
+  const frag = document.createDocumentFragment();
+  cats.forEach(cat => {
+    const isBuiltIn = CATEGORIES[catModalType].some(c => c.id === cat.id);
+    const row = document.createElement('div');
+    row.className = 'cat-item';
+    row.innerHTML = `
+      <span class="cat-item-icon tx-icon ${catModalType}">
+        <i class="fa-solid ${cat.icon}"></i>
+      </span>
+      <span class="cat-item-label">${escapeHtml(cat.label)}</span>
+      ${isBuiltIn
+        ? '<span class="cat-item-lock"><i class="fa-solid fa-lock"></i></span>'
+        : `<button class="tx-delete cat-del-btn" data-id="${cat.id}" data-type="${catModalType}" aria-label="Delete category">
+             <i class="fa-solid fa-xmark text-xs pointer-events-none"></i>
+           </button>`
+      }
+    `;
+    frag.appendChild(row);
+  });
+  list.appendChild(frag);
+}
+
+function renderIconPicker() {
+  const picker = document.getElementById('iconPicker');
+  picker.innerHTML = '';
+  const frag = document.createDocumentFragment();
+  PICKABLE_ICONS.forEach(icon => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'icon-option' + (icon === selectedIcon ? ' selected' : '');
+    btn.dataset.icon = icon;
+    btn.setAttribute('aria-label', icon.replace('fa-', ''));
+    btn.innerHTML = `<i class="fa-solid ${icon}"></i>`;
+    frag.appendChild(btn);
+  });
+  picker.appendChild(frag);
+}
+
+function handleAddCategory() {
+  const nameInput = document.getElementById('newCatName');
+  const name = nameInput.value.trim();
+
+  if (!name) {
+    nameInput.classList.add('error');
+    nameInput.focus();
+    setTimeout(() => nameInput.classList.remove('error'), 1500);
+    return;
+  }
+
+  const existing = getCatsForType(catModalType);
+  if (existing.some(c => c.label.toLowerCase() === name.toLowerCase())) {
+    showToast('A category with that name already exists.');
+    nameInput.focus();
+    return;
+  }
+
+  const newCat = {
+    id:    'custom_' + generateId(),
+    label: name.slice(0, 30),
+    icon:  selectedIcon,
+  };
+
+  customCategories[catModalType].push(newCat);
+  saveCustomCategories();
+  nameInput.value = '';
+  selectedIcon = PICKABLE_ICONS[0];
+  renderCatList();
+  renderIconPicker();
+  populateCategorySelect(currentType);
+  showToast(`"${newCat.label}" added.`);
+}
+
+function handleDeleteCategory(id, type) {
+  const cat = customCategories[type].find(c => c.id === id);
+  if (!cat) return;
+  customCategories[type] = customCategories[type].filter(c => c.id !== id);
+  saveCustomCategories();
+  renderCatList();
+  populateCategorySelect(currentType);
+  renderCategoryFilters();
+  showToast(`"${cat.label}" removed.`);
+}
+
 // ─── Boot ─────────────────────────────────────────────────────────────────────
 
 function init() {
-  transactions = loadTransactions();
+  transactions     = loadTransactions();
+  customCategories = loadCustomCategories();
 
   // Set default date to today
   document.getElementById('date').value = todayISO();
@@ -628,9 +803,9 @@ function init() {
     if (e.target === document.getElementById('deleteModal')) closeDeleteModal();
   });
 
-  // Keyboard: Escape closes modal
+  // Keyboard: Escape closes any open modal
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') closeDeleteModal();
+    if (e.key === 'Escape') { closeDeleteModal(); closeCatModal(); }
   });
 
   // Export / Import
@@ -644,6 +819,31 @@ function init() {
 
   // Re-render chart when OS theme changes so tooltip/border colors update
   darkMQ.addEventListener('change', renderChart);
+
+  // Category management modal
+  document.getElementById('btnManageCats').addEventListener('click', openCatModal);
+  document.getElementById('catModalClose').addEventListener('click', closeCatModal);
+  document.getElementById('catModal').addEventListener('click', e => {
+    if (e.target === document.getElementById('catModal')) closeCatModal();
+  });
+  document.getElementById('catTabExpense').addEventListener('click', () => setCatTab('expense'));
+  document.getElementById('catTabIncome').addEventListener('click',  () => setCatTab('income'));
+  document.getElementById('btnAddCat').addEventListener('click', handleAddCategory);
+  document.getElementById('newCatName').addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); handleAddCategory(); }
+  });
+  document.getElementById('catList').addEventListener('click', e => {
+    const btn = e.target.closest('.cat-del-btn');
+    if (btn) handleDeleteCategory(btn.dataset.id, btn.dataset.type);
+  });
+  document.getElementById('iconPicker').addEventListener('click', e => {
+    const btn = e.target.closest('.icon-option');
+    if (!btn) return;
+    selectedIcon = btn.dataset.icon;
+    document.querySelectorAll('#iconPicker .icon-option').forEach(b =>
+      b.classList.toggle('selected', b.dataset.icon === selectedIcon)
+    );
+  });
 
   // Filters
   document.getElementById('filterCategory').addEventListener('change', renderTransactions);
