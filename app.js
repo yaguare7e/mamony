@@ -602,7 +602,7 @@ function init() {
   document.getElementById('date').value = todayISO();
 
   // Initialise type
-  setType('income');
+  setType('expense');
 
   // Month nav
   document.getElementById('btnPrevMonth').addEventListener('click', prevMonth);
