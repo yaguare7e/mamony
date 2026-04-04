@@ -51,6 +51,11 @@ let pendingDeleteId = null;
 let chartMode       = 'expense';
 let chartInstance   = null;
 
+// ─── Dark mode ────────────────────────────────────────────────────────────────
+
+const darkMQ = window.matchMedia('(prefers-color-scheme: dark)');
+const isDark  = () => darkMQ.matches;
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function generateId() {
@@ -188,6 +193,8 @@ function renderChart() {
 
   if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
 
+  const dark = isDark();
+
   chartInstance = new Chart(canvas, {
     type: 'doughnut',
     data: {
@@ -195,7 +202,7 @@ function renderChart() {
       datasets: [{
         data,
         backgroundColor: colors,
-        borderColor: '#ffffff',
+        borderColor: dark ? '#1e293b' : '#ffffff',
         borderWidth: 3,
         hoverOffset: 10,
         hoverBorderWidth: 3,
@@ -208,6 +215,11 @@ function renderChart() {
       plugins: {
         legend: { display: false },
         tooltip: {
+          backgroundColor: dark ? '#334155' : '#111827',
+          titleColor:       dark ? '#f1f5f9' : '#ffffff',
+          bodyColor:        dark ? '#f1f5f9' : '#ffffff',
+          borderColor:      dark ? '#475569' : 'transparent',
+          borderWidth:      dark ? 1 : 0,
           callbacks: {
             label: (ctx) => {
               const val = ctx.raw;
@@ -629,6 +641,9 @@ function init() {
   // Chart mode toggle
   document.getElementById('chartModeExpense').addEventListener('click', () => setChartMode('expense'));
   document.getElementById('chartModeIncome').addEventListener('click',  () => setChartMode('income'));
+
+  // Re-render chart when OS theme changes so tooltip/border colors update
+  darkMQ.addEventListener('change', renderChart);
 
   // Filters
   document.getElementById('filterCategory').addEventListener('change', renderTransactions);

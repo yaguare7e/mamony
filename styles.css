@@ -1,23 +1,91 @@
-/* ─── Base ─────────────────────────────────────────────────────────── */
+/* ─── Variables ───────────────────────────────────────────────────────── */
+:root {
+  --bg-page:       #f9fafb;
+  --bg-surface:    #ffffff;
+  --bg-input:      #f9fafb;
+  --bg-hover:      #f3f4f6;
+  --bg-tx-hover:   #f9fafb;
+  --border:        #e5e7eb;
+  --text-1:        #111827;
+  --text-2:        #374151;
+  --text-3:        #6b7280;
+  --text-4:        #9ca3af;
+  --text-5:        #d1d5db;
+  --scrollbar:     #e5e7eb;
+  --modal-overlay: rgba(0, 0, 0, 0.35);
+  --income-bg:     #d1fae5;
+  --income-fg:     #059669;
+  --income-text:   #065f46;
+  --expense-bg:    #ffe4e6;
+  --expense-fg:    #e11d48;
+  --expense-text:  #9f1239;
+  --toggle-active-income-bg:  #d1fae5;
+  --toggle-active-income-fg:  #065f46;
+  --toggle-active-expense-bg: #ffe4e6;
+  --toggle-active-expense-fg: #9f1239;
+  --arrow-svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-page:       #0f172a;
+    --bg-surface:    #1e293b;
+    --bg-input:      #0f172a;
+    --bg-hover:      #334155;
+    --bg-tx-hover:   #263348;
+    --border:        #334155;
+    --text-1:        #f1f5f9;
+    --text-2:        #e2e8f0;
+    --text-3:        #94a3b8;
+    --text-4:        #64748b;
+    --text-5:        #475569;
+    --scrollbar:     #334155;
+    --modal-overlay: rgba(0, 0, 0, 0.6);
+    --income-bg:     #064e3b;
+    --income-fg:     #34d399;
+    --income-text:   #6ee7b7;
+    --expense-bg:    #4c0519;
+    --expense-fg:    #fb7185;
+    --expense-text:  #fda4af;
+    --toggle-active-income-bg:  #064e3b;
+    --toggle-active-income-fg:  #6ee7b7;
+    --toggle-active-expense-bg: #4c0519;
+    --toggle-active-expense-fg: #fda4af;
+    --arrow-svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+  }
+}
+
+/* ─── Base ─────────────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; }
 
 body {
+  background-color: var(--bg-page);
+  color: var(--text-1);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* ─── Cards ─────────────────────────────────────────────────────────── */
+/* Override Tailwind utility classes that JS sets dynamically */
+@media (prefers-color-scheme: dark) {
+  .text-gray-900 { color: var(--text-1) !important; }
+  .text-income-text { color: var(--income-text) !important; }
+  .text-expense-text { color: var(--expense-text) !important; }
+  .text-income { color: var(--income-fg) !important; }
+  .text-expense { color: var(--expense-fg) !important; }
+}
+
+/* ─── Cards ─────────────────────────────────────────────────────────────── */
 .card {
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 1.25rem;
 }
 
-/* ─── Summary Cards ──────────────────────────────────────────────────── */
+/* ─── Summary Cards ──────────────────────────────────────────────────────── */
 .summary-card {
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 0.875rem 1rem;
   display: flex;
@@ -30,7 +98,7 @@ body {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.07em;
-  color: #9ca3af;
+  color: var(--text-4);
 }
 
 .summary-value {
@@ -46,30 +114,30 @@ body {
   .summary-value { font-size: 0.85rem; }
 }
 
-/* ─── Month Navigation ───────────────────────────────────────────────── */
+/* ─── Month Navigation ───────────────────────────────────────────────────── */
 .nav-month-btn {
   width: 28px;
   height: 28px;
   border-radius: 6px;
-  border: 1px solid #e5e7eb;
-  background: #ffffff;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #6b7280;
+  color: var(--text-3);
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
 }
 
 .nav-month-btn:hover {
-  background: #f3f4f6;
-  color: #111827;
+  background: var(--bg-hover);
+  color: var(--text-1);
 }
 
-/* ─── Type Toggle ─────────────────────────────────────────────────────── */
+/* ─── Type Toggle ─────────────────────────────────────────────────────────── */
 .type-toggle {
   display: flex;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border);
   border-radius: 8px;
   overflow: hidden;
 }
@@ -79,7 +147,7 @@ body {
   font-weight: 600;
   padding: 5px 10px;
   background: transparent;
-  color: #9ca3af;
+  color: var(--text-4);
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
   border: none;
@@ -89,26 +157,26 @@ body {
 }
 
 .type-btn:first-child {
-  border-right: 1px solid #e5e7eb;
+  border-right: 1px solid var(--border);
 }
 
 .type-btn.active-income {
-  background: #d1fae5;
-  color: #065f46;
+  background: var(--toggle-active-income-bg);
+  color: var(--toggle-active-income-fg);
 }
 
 .type-btn.active-expense {
-  background: #ffe4e6;
-  color: #9f1239;
+  background: var(--toggle-active-expense-bg);
+  color: var(--toggle-active-expense-fg);
 }
 
-/* ─── Form Elements ───────────────────────────────────────────────────── */
+/* ─── Form Elements ───────────────────────────────────────────────────────── */
 .form-group { display: flex; flex-direction: column; gap: 4px; }
 
 .form-label {
   font-size: 0.7rem;
   font-weight: 600;
-  color: #6b7280;
+  color: var(--text-3);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -116,9 +184,9 @@ body {
 .form-input {
   width: 100%;
   font-size: 0.875rem;
-  color: #111827;
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
+  color: var(--text-1);
+  background: var(--bg-input);
+  border: 1px solid var(--border);
   border-radius: 8px;
   padding: 8px 10px;
   outline: none;
@@ -128,14 +196,16 @@ body {
   -webkit-appearance: none;
 }
 
+.form-input::placeholder { color: var(--text-4); }
+
 .form-input:focus {
-  border-color: #6b7280;
-  background: #ffffff;
-  box-shadow: 0 0 0 3px rgba(107, 114, 128, 0.12);
+  border-color: var(--text-3);
+  background: var(--bg-surface);
+  box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.15);
 }
 
 .form-input.error {
-  border-color: #e11d48;
+  border-color: var(--expense-fg);
   box-shadow: 0 0 0 3px rgba(225, 29, 72, 0.1);
 }
 
@@ -144,8 +214,20 @@ input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 input[type="number"] { -moz-appearance: textfield; }
 
+/* date input: icon color in dark mode */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  opacity: 0.5;
+  cursor: pointer;
+  filter: var(--date-icon-filter, none);
+}
+@media (prefers-color-scheme: dark) {
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+  }
+}
+
 select.form-input {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+  background-image: var(--arrow-svg);
   background-repeat: no-repeat;
   background-position: right 8px center;
   background-size: 16px;
@@ -153,7 +235,14 @@ select.form-input {
   cursor: pointer;
 }
 
-/* ─── Submit Button ───────────────────────────────────────────────────── */
+/* select option dark mode */
+select.form-input option,
+.filter-select option {
+  background: var(--bg-surface);
+  color: var(--text-1);
+}
+
+/* ─── Submit Button ───────────────────────────────────────────────────────── */
 .submit-btn {
   width: 100%;
   padding: 10px;
@@ -167,30 +256,30 @@ select.form-input {
   border: none;
   outline: none;
   transition: opacity 0.15s, transform 0.1s;
-  background: #111827;
-  color: #ffffff;
+  background: var(--text-1);
+  color: var(--bg-page);
   margin-top: 4px;
 }
 
 .submit-btn:hover { opacity: 0.88; }
 .submit-btn:active { transform: scale(0.98); }
-.submit-btn.income-mode { background: #059669; }
-.submit-btn.expense-mode { background: #e11d48; }
+.submit-btn.income-mode  { background: var(--income-fg);  color: #fff; }
+.submit-btn.expense-mode { background: var(--expense-fg); color: #fff; }
 
-/* ─── Filter Selects ──────────────────────────────────────────────────── */
+/* ─── Filter Selects ──────────────────────────────────────────────────────── */
 .filter-select {
   font-size: 0.7rem;
   font-weight: 500;
-  color: #374151;
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
+  color: var(--text-2);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
   border-radius: 6px;
   padding: 5px 24px 5px 8px;
   outline: none;
   cursor: pointer;
   appearance: none;
   -webkit-appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+  background-image: var(--arrow-svg);
   background-repeat: no-repeat;
   background-position: right 6px center;
   background-size: 14px;
@@ -198,22 +287,22 @@ select.form-input {
   transition: border-color 0.15s;
 }
 
-.filter-select:focus { border-color: #6b7280; }
+.filter-select:focus { border-color: var(--text-3); }
 
-/* ─── Transaction Items ───────────────────────────────────────────────── */
+/* ─── Transaction Items ───────────────────────────────────────────────────── */
 .tx-item {
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 12px 14px;
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
   border-radius: 10px;
   transition: background 0.12s;
   animation: fadeSlideIn 0.2s ease both;
 }
 
-.tx-item:hover { background: #f9fafb; }
+.tx-item:hover { background: var(--bg-tx-hover); }
 
 @keyframes fadeSlideIn {
   from { opacity: 0; transform: translateY(-6px); }
@@ -231,15 +320,15 @@ select.form-input {
   flex-shrink: 0;
 }
 
-.tx-icon.income { background: #d1fae5; color: #059669; }
-.tx-icon.expense { background: #ffe4e6; color: #e11d48; }
+.tx-icon.income  { background: var(--income-bg);  color: var(--income-fg);  }
+.tx-icon.expense { background: var(--expense-bg); color: var(--expense-fg); }
 
 .tx-meta { flex: 1; min-width: 0; }
 
 .tx-note {
   font-size: 0.8125rem;
   font-weight: 500;
-  color: #111827;
+  color: var(--text-1);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -247,7 +336,7 @@ select.form-input {
 
 .tx-cat-date {
   font-size: 0.68rem;
-  color: #9ca3af;
+  color: var(--text-4);
   margin-top: 1px;
   display: flex;
   align-items: center;
@@ -260,8 +349,8 @@ select.form-input {
   flex-shrink: 0;
 }
 
-.tx-amount.income { color: #059669; }
-.tx-amount.expense { color: #e11d48; }
+.tx-amount.income  { color: var(--income-fg);  }
+.tx-amount.expense { color: var(--expense-fg); }
 
 .tx-delete {
   width: 28px;
@@ -269,7 +358,7 @@ select.form-input {
   border-radius: 6px;
   background: transparent;
   border: none;
-  color: #d1d5db;
+  color: var(--text-5);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -279,17 +368,18 @@ select.form-input {
 }
 
 .tx-delete:hover {
-  background: #ffe4e6;
-  color: #e11d48;
+  background: var(--expense-bg);
+  color: var(--expense-fg);
 }
 
-/* ─── Icon Button ─────────────────────────────────────────────────────── */
+/* ─── Icon Button ─────────────────────────────────────────────────────────── */
 .icon-btn {
   width: 32px;
   height: 32px;
   border-radius: 7px;
-  border: 1px solid #e5e7eb;
-  background: #ffffff;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--text-3);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -298,18 +388,18 @@ select.form-input {
 }
 
 .icon-btn:hover {
-  background: #f3f4f6;
-  color: #111827;
+  background: var(--bg-hover);
+  color: var(--text-1);
 }
 
-/* ─── Toast ───────────────────────────────────────────────────────────── */
+/* ─── Toast ───────────────────────────────────────────────────────────────── */
 .toast {
   position: fixed;
   bottom: 24px;
   left: 50%;
   transform: translateX(-50%) translateY(12px);
-  background: #111827;
-  color: #ffffff;
+  background: var(--text-1);
+  color: var(--bg-page);
   font-size: 0.78rem;
   font-weight: 500;
   padding: 9px 16px;
@@ -319,6 +409,7 @@ select.form-input {
   pointer-events: none;
   transition: opacity 0.2s, transform 0.2s;
   z-index: 100;
+  border: 1px solid var(--border);
 }
 
 .toast.show {
@@ -326,11 +417,11 @@ select.form-input {
   transform: translateX(-50%) translateY(0);
 }
 
-/* ─── Modal ───────────────────────────────────────────────────────────── */
+/* ─── Modal ───────────────────────────────────────────────────────────────── */
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.35);
+  background: var(--modal-overlay);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -341,12 +432,13 @@ select.form-input {
 .modal-backdrop.hidden { display: none; }
 
 .modal-box {
-  background: #ffffff;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 20px;
   width: 100%;
   max-width: 320px;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
   animation: popIn 0.18s ease both;
 }
 
@@ -355,11 +447,11 @@ select.form-input {
   to   { opacity: 1; transform: scale(1); }
 }
 
-/* ─── Buttons ─────────────────────────────────────────────────────────── */
+/* ─── Buttons ─────────────────────────────────────────────────────────────── */
 .btn-secondary {
-  border: 1px solid #e5e7eb;
-  background: #ffffff;
-  color: #374151;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--text-2);
   border-radius: 6px;
   font-weight: 500;
   cursor: pointer;
@@ -367,10 +459,10 @@ select.form-input {
   font-family: inherit;
 }
 
-.btn-secondary:hover { background: #f3f4f6; }
+.btn-secondary:hover { background: var(--bg-hover); }
 
 .btn-danger {
-  background: #e11d48;
+  background: var(--expense-fg);
   color: #ffffff;
   border: none;
   border-radius: 6px;
@@ -382,7 +474,7 @@ select.form-input {
 
 .btn-danger:hover { opacity: 0.85; }
 
-/* ─── Scrollable list on tall screens ────────────────────────────────── */
+/* ─── Scrollable list ─────────────────────────────────────────────────────── */
 #transactionList {
   max-height: 480px;
   overflow-y: auto;
@@ -391,9 +483,9 @@ select.form-input {
 
 #transactionList::-webkit-scrollbar { width: 4px; }
 #transactionList::-webkit-scrollbar-track { background: transparent; }
-#transactionList::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 99px; }
+#transactionList::-webkit-scrollbar-thumb { background: var(--scrollbar); border-radius: 99px; }
 
-/* ─── Pie Chart ───────────────────────────────────────────────────────── */
+/* ─── Pie Chart ───────────────────────────────────────────────────────────── */
 .chart-wrap {
   position: relative;
   width: 180px;
@@ -417,13 +509,13 @@ select.form-input {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.07em;
-  color: #9ca3af;
+  color: var(--text-4);
 }
 
 .chart-center-value {
   font-size: 0.95rem;
   font-weight: 700;
-  color: #111827;
+  color: var(--text-1);
   line-height: 1.1;
 }
 
@@ -441,7 +533,7 @@ select.form-input {
   align-items: center;
   gap: 8px;
   font-size: 0.78rem;
-  color: #374151;
+  color: var(--text-2);
 }
 
 .chart-legend-dot {
@@ -452,7 +544,7 @@ select.form-input {
 }
 
 .chart-legend-icon {
-  color: #9ca3af;
+  color: var(--text-4);
   font-size: 0.7rem;
   text-align: center;
 }
@@ -466,7 +558,7 @@ select.form-input {
 
 .chart-legend-pct {
   font-size: 0.7rem;
-  color: #9ca3af;
+  color: var(--text-4);
   text-align: right;
   flex-shrink: 0;
 }
@@ -478,7 +570,7 @@ select.form-input {
   min-width: 72px;
 }
 
-/* ─── Responsive tweaks ───────────────────────────────────────────────── */
+/* ─── Responsive tweaks ───────────────────────────────────────────────────── */
 @media (max-width: 480px) {
   .summary-card { padding: 0.75rem 0.75rem; }
   .summary-value { font-size: 0.9rem; }

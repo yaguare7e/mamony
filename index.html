@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="styles.css" />
   <script>
     tailwind.config = {
+      darkMode: 'media',
       theme: {
         extend: {
           colors: {
@@ -26,21 +27,19 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
-<body class="bg-gray-50 font-sans text-gray-900 min-h-screen">
+<body class="font-sans min-h-screen">
 
   <!-- Top Nav -->
-  <header class="bg-white border-b border-gray-200 sticky top-0 z-30">
+  <header class="bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 sticky top-0 z-30">
     <div class="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
       <div class="flex items-center gap-2">
         <span class="text-lg font-bold tracking-tight">Ma<span class="text-emerald-600">Mony</span></span>
       </div>
       <div class="flex items-center gap-2">
-        <button id="btnOpenImport" title="Import data"
-          class="icon-btn text-gray-500 hover:text-gray-900">
+        <button id="btnOpenImport" title="Import data" class="icon-btn">
           <i class="fa-solid fa-upload text-sm"></i>
         </button>
-        <button id="btnExport" title="Export data"
-          class="icon-btn text-gray-500 hover:text-gray-900">
+        <button id="btnExport" title="Export data" class="icon-btn">
           <i class="fa-solid fa-download text-sm"></i>
         </button>
         <input type="file" id="importFileInput" accept=".json" class="hidden" />
@@ -55,7 +54,7 @@
       <button id="btnPrevMonth" class="nav-month-btn">
         <i class="fa-solid fa-chevron-left text-xs"></i>
       </button>
-      <span id="currentMonthLabel" class="text-sm font-semibold text-gray-700 tracking-wide uppercase"></span>
+      <span id="currentMonthLabel" class="text-sm font-semibold text-gray-700 dark:text-slate-300 tracking-wide uppercase"></span>
       <button id="btnNextMonth" class="nav-month-btn">
         <i class="fa-solid fa-chevron-right text-xs"></i>
       </button>
@@ -80,7 +79,7 @@
     <!-- Pie Chart -->
     <section class="card" aria-label="Category breakdown chart">
       <div class="flex items-center justify-between mb-4">
-        <h2 class="text-sm font-semibold text-gray-700">By Category</h2>
+        <h2 class="text-sm font-semibold text-gray-700 dark:text-slate-300">By Category</h2>
         <div class="type-toggle" role="group" aria-label="Chart mode">
           <button id="chartModeExpense" class="type-btn active-expense">
             <i class="fa-solid fa-arrow-down text-xs mr-1"></i>Expenses
@@ -94,7 +93,7 @@
         <canvas id="pieChart"></canvas>
         <div id="chartCenter" class="chart-center"></div>
       </div>
-      <p id="chartEmpty" class="text-center text-gray-400 text-sm py-6 hidden">
+      <p id="chartEmpty" class="text-center text-gray-400 dark:text-slate-600 text-sm py-6 hidden">
         <i class="fa-regular fa-chart-pie text-2xl block mb-2"></i>
         No data for this period.
       </p>
@@ -104,7 +103,7 @@
     <!-- Add Transaction Form -->
     <section class="card" aria-label="Add transaction">
       <div class="flex items-center justify-between mb-4">
-        <h2 class="text-sm font-semibold text-gray-700">New Transaction</h2>
+        <h2 class="text-sm font-semibold text-gray-700 dark:text-slate-300">New Transaction</h2>
         <div class="type-toggle" role="group" aria-label="Transaction type">
           <button id="typeIncome" data-type="income" class="type-btn active-income">
             <i class="fa-solid fa-arrow-up text-xs mr-1"></i>Income
@@ -120,7 +119,7 @@
           <div class="form-group">
             <label for="amount" class="form-label">Amount</label>
             <div class="relative">
-              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500 text-sm">$</span>
               <input type="number" id="amount" name="amount" placeholder="0.00"
                 min="0.01" step="0.01"
                 class="form-input pl-7" autocomplete="off" inputmode="decimal" />
@@ -140,7 +139,7 @@
             </select>
           </div>
           <div class="form-group">
-            <label for="note" class="form-label">Note <span class="text-gray-400 font-normal">(optional)</span></label>
+            <label for="note" class="form-label">Note <span class="text-gray-400 dark:text-slate-500 font-normal">(optional)</span></label>
             <input type="text" id="note" name="note" placeholder="Brief description…"
               maxlength="80" class="form-input" autocomplete="off" />
           </div>
@@ -158,7 +157,7 @@
     <!-- Transaction History -->
     <section aria-label="Transaction history">
       <div class="flex items-center justify-between mb-3">
-        <h2 class="text-sm font-semibold text-gray-700">Transactions</h2>
+        <h2 class="text-sm font-semibold text-gray-700 dark:text-slate-300">Transactions</h2>
         <div class="flex items-center gap-2">
           <select id="filterCategory" class="filter-select">
             <option value="all">All categories</option>
@@ -175,7 +174,7 @@
         <!-- transactions injected here -->
       </div>
 
-      <p id="emptyState" class="text-center text-gray-400 text-sm py-12 hidden">
+      <p id="emptyState" class="text-center text-gray-400 dark:text-slate-600 text-sm py-12 hidden">
         <i class="fa-regular fa-folder-open text-2xl block mb-2"></i>
         No transactions yet.
       </p>
@@ -189,8 +188,8 @@
   <!-- Confirm Delete Modal -->
   <div id="deleteModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
     <div class="modal-box">
-      <p id="modalTitle" class="text-sm font-semibold text-gray-800 mb-1">Delete transaction?</p>
-      <p class="text-xs text-gray-500 mb-4">This action cannot be undone.</p>
+      <p id="modalTitle" class="text-sm font-semibold text-gray-800 dark:text-slate-200 mb-1">Delete transaction?</p>
+      <p class="text-xs text-gray-500 dark:text-slate-400 mb-4">This action cannot be undone.</p>
       <div class="flex gap-2 justify-end">
         <button id="modalCancel" class="btn-secondary text-xs px-3 py-1.5">Cancel</button>
         <button id="modalConfirm" class="btn-danger text-xs px-3 py-1.5">Delete</button>
