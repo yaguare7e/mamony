@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MaMony — Expense Tracker</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            income: { DEFAULT: '#059669', light: '#d1fae5', text: '#065f46' },
+            expense: { DEFAULT: '#e11d48', light: '#ffe4e6', text: '#9f1239' },
+            surface: '#fafafa',
+            border: '#e5e7eb',
+          },
+          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+</head>
+<body class="bg-gray-50 font-sans text-gray-900 min-h-screen">
+
+  <!-- Top Nav -->
+  <header class="bg-white border-b border-gray-200 sticky top-0 z-30">
+    <div class="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <span class="text-lg font-bold tracking-tight">Ma<span class="text-emerald-600">Mony</span></span>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="btnOpenImport" title="Import data"
+          class="icon-btn text-gray-500 hover:text-gray-900">
+          <i class="fa-solid fa-upload text-sm"></i>
+        </button>
+        <button id="btnExport" title="Export data"
+          class="icon-btn text-gray-500 hover:text-gray-900">
+          <i class="fa-solid fa-download text-sm"></i>
+        </button>
+        <input type="file" id="importFileInput" accept=".json" class="hidden" />
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-3xl mx-auto px-4 py-6 space-y-6">
+
+    <!-- Month selector -->
+    <div class="flex items-center justify-between">
+      <button id="btnPrevMonth" class="nav-month-btn">
+        <i class="fa-solid fa-chevron-left text-xs"></i>
+      </button>
+      <span id="currentMonthLabel" class="text-sm font-semibold text-gray-700 tracking-wide uppercase"></span>
+      <button id="btnNextMonth" class="nav-month-btn">
+        <i class="fa-solid fa-chevron-right text-xs"></i>
+      </button>
+    </div>
+
+    <!-- Summary Cards -->
+    <section class="grid grid-cols-3 gap-3" aria-label="Monthly summary">
+      <div class="summary-card">
+        <span class="summary-label">Balance</span>
+        <span id="totalBalance" class="summary-value text-gray-900">$0.00</span>
+      </div>
+      <div class="summary-card">
+        <span class="summary-label text-income-text">Income</span>
+        <span id="totalIncome" class="summary-value text-income">$0.00</span>
+      </div>
+      <div class="summary-card">
+        <span class="summary-label text-expense-text">Expenses</span>
+        <span id="totalExpenses" class="summary-value text-expense">$0.00</span>
+      </div>
+    </section>
+
+    <!-- Add Transaction Form -->
+    <section class="card" aria-label="Add transaction">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-sm font-semibold text-gray-700">New Transaction</h2>
+        <div class="type-toggle" role="group" aria-label="Transaction type">
+          <button id="typeIncome" data-type="income" class="type-btn active-income">
+            <i class="fa-solid fa-arrow-up text-xs mr-1"></i>Income
+          </button>
+          <button id="typeExpense" data-type="expense" class="type-btn">
+            <i class="fa-solid fa-arrow-down text-xs mr-1"></i>Expense
+          </button>
+        </div>
+      </div>
+
+      <form id="transactionForm" novalidate class="space-y-3">
+        <div class="grid grid-cols-2 gap-3">
+          <div class="form-group">
+            <label for="amount" class="form-label">Amount</label>
+            <div class="relative">
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+              <input type="number" id="amount" name="amount" placeholder="0.00"
+                min="0.01" step="0.01"
+                class="form-input pl-7" autocomplete="off" inputmode="decimal" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="date" class="form-label">Date</label>
+            <input type="date" id="date" name="date" class="form-input" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div class="form-group">
+            <label for="category" class="form-label">Category</label>
+            <select id="category" name="category" class="form-input">
+              <!-- populated by JS -->
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="note" class="form-label">Note <span class="text-gray-400 font-normal">(optional)</span></label>
+            <input type="text" id="note" name="note" placeholder="Brief description…"
+              maxlength="80" class="form-input" autocomplete="off" />
+          </div>
+        </div>
+
+        <p id="formError" class="text-xs text-rose-600 hidden"></p>
+
+        <button type="submit" id="submitBtn" class="submit-btn">
+          <i class="fa-solid fa-plus text-xs mr-1.5"></i>
+          <span id="submitBtnLabel">Add Income</span>
+        </button>
+      </form>
+    </section>
+
+    <!-- Transaction History -->
+    <section aria-label="Transaction history">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-sm font-semibold text-gray-700">Transactions</h2>
+        <div class="flex items-center gap-2">
+          <select id="filterCategory" class="filter-select">
+            <option value="all">All categories</option>
+          </select>
+          <select id="filterType" class="filter-select">
+            <option value="all">All types</option>
+            <option value="income">Income</option>
+            <option value="expense">Expense</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="transactionList" class="space-y-2">
+        <!-- transactions injected here -->
+      </div>
+
+      <p id="emptyState" class="text-center text-gray-400 text-sm py-12 hidden">
+        <i class="fa-regular fa-folder-open text-2xl block mb-2"></i>
+        No transactions yet.
+      </p>
+    </section>
+
+  </main>
+
+  <!-- Toast -->
+  <div id="toast" class="toast" role="alert" aria-live="assertive"></div>
+
+  <!-- Confirm Delete Modal -->
+  <div id="deleteModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-box">
+      <p id="modalTitle" class="text-sm font-semibold text-gray-800 mb-1">Delete transaction?</p>
+      <p class="text-xs text-gray-500 mb-4">This action cannot be undone.</p>
+      <div class="flex gap-2 justify-end">
+        <button id="modalCancel" class="btn-secondary text-xs px-3 py-1.5">Cancel</button>
+        <button id="modalConfirm" class="btn-danger text-xs px-3 py-1.5">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
