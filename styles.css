@@ -393,6 +393,91 @@ select.form-input {
 #transactionList::-webkit-scrollbar-track { background: transparent; }
 #transactionList::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 99px; }
 
+/* ─── Pie Chart ───────────────────────────────────────────────────────── */
+.chart-wrap {
+  position: relative;
+  width: 180px;
+  height: 180px;
+  margin: 0 auto 4px;
+}
+
+.chart-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  gap: 2px;
+}
+
+.chart-center-label {
+  font-size: 0.6rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #9ca3af;
+}
+
+.chart-center-value {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.1;
+}
+
+/* Legend */
+.chart-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 16px;
+}
+
+.chart-legend-row {
+  display: grid;
+  grid-template-columns: 10px 18px 1fr auto auto;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  color: #374151;
+}
+
+.chart-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.chart-legend-icon {
+  color: #9ca3af;
+  font-size: 0.7rem;
+  text-align: center;
+}
+
+.chart-legend-label {
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chart-legend-pct {
+  font-size: 0.7rem;
+  color: #9ca3af;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.chart-legend-amount {
+  font-weight: 600;
+  text-align: right;
+  flex-shrink: 0;
+  min-width: 72px;
+}
+
 /* ─── Responsive tweaks ───────────────────────────────────────────────── */
 @media (max-width: 480px) {
   .summary-card { padding: 0.75rem 0.75rem; }

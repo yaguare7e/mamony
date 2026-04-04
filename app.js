@@ -35,13 +35,21 @@ const CATEGORIES = {
 
 const ALL_CATS = [...CATEGORIES.income, ...CATEGORIES.expense];
 
+const CHART_PALETTE = [
+  '#f43f5e', '#fb923c', '#facc15', '#4ade80', '#22d3ee',
+  '#818cf8', '#c084fc', '#fb7185', '#6ee7b7', '#67e8f9',
+  '#a5b4fc', '#fde68a',
+];
+
 // ─── State ────────────────────────────────────────────────────────────────────
 
-let transactions = [];
-let currentType  = 'income';
-let viewYear     = new Date().getFullYear();
-let viewMonth    = new Date().getMonth(); // 0-indexed
+let transactions    = [];
+let currentType     = 'income';
+let viewYear        = new Date().getFullYear();
+let viewMonth       = new Date().getMonth(); // 0-indexed
 let pendingDeleteId = null;
+let chartMode       = 'expense';
+let chartInstance   = null;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -124,6 +132,117 @@ function computeSummary(txList) {
   return { income, expense, balance: income - expense };
 }
 
+// ─── Chart ────────────────────────────────────────────────────────────────────
+
+function buildChartData(type) {
+  const monthTx = transactionsForMonth(viewYear, viewMonth).filter(t => t.type === type);
+  const totals  = {};
+  monthTx.forEach(t => { totals[t.category] = (totals[t.category] || 0) + t.amount; });
+  return Object.entries(totals)
+    .map(([id, amount]) => ({ id, amount, meta: getCatMeta(id) }))
+    .sort((a, b) => b.amount - a.amount);
+}
+
+function setChartMode(type) {
+  chartMode = type;
+  const expBtn = document.getElementById('chartModeExpense');
+  const incBtn = document.getElementById('chartModeIncome');
+  expBtn.className = 'type-btn' + (type === 'expense' ? ' active-expense' : '');
+  incBtn.className = 'type-btn' + (type === 'income'  ? ' active-income'  : '');
+  renderChart();
+}
+
+function renderChart() {
+  if (typeof Chart === 'undefined') return;
+
+  const canvas    = document.getElementById('pieChart');
+  const chartWrap = document.getElementById('chartWrap');
+  const chartEmpty= document.getElementById('chartEmpty');
+  const legendEl  = document.getElementById('chartLegend');
+  const centerEl  = document.getElementById('chartCenter');
+
+  const sorted = buildChartData(chartMode);
+
+  if (sorted.length === 0) {
+    chartWrap.classList.add('hidden');
+    legendEl.innerHTML   = '';
+    centerEl.innerHTML   = '';
+    chartEmpty.classList.remove('hidden');
+    if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+    return;
+  }
+
+  chartWrap.classList.remove('hidden');
+  chartEmpty.classList.add('hidden');
+
+  const labels = sorted.map(d => d.meta.label);
+  const data   = sorted.map(d => d.amount);
+  const colors = CHART_PALETTE.slice(0, data.length);
+  const total  = data.reduce((s, v) => s + v, 0);
+
+  // Center label
+  centerEl.innerHTML = `
+    <span class="chart-center-label">${chartMode === 'expense' ? 'Expenses' : 'Income'}</span>
+    <span class="chart-center-value">${formatCurrency(total)}</span>
+  `;
+
+  if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+
+  chartInstance = new Chart(canvas, {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{
+        data,
+        backgroundColor: colors,
+        borderColor: '#ffffff',
+        borderWidth: 3,
+        hoverOffset: 10,
+        hoverBorderWidth: 3,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      cutout: '68%',
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => {
+              const val = ctx.raw;
+              const pct = ((val / total) * 100).toFixed(1);
+              return `  ${formatCurrency(val)}  (${pct}%)`;
+            },
+          },
+          bodyFont: { family: 'Inter, system-ui, sans-serif', size: 12 },
+          padding: 10,
+          cornerRadius: 8,
+        },
+      },
+      animation: { animateRotate: true, animateScale: false, duration: 400 },
+    },
+  });
+
+  // Legend rows
+  legendEl.innerHTML = '';
+  const frag = document.createDocumentFragment();
+  sorted.forEach((d, i) => {
+    const pct = ((d.amount / total) * 100).toFixed(1);
+    const row = document.createElement('div');
+    row.className = 'chart-legend-row';
+    row.innerHTML = `
+      <span class="chart-legend-dot" style="background:${colors[i]}"></span>
+      <span class="chart-legend-icon"><i class="fa-solid ${d.meta.icon}"></i></span>
+      <span class="chart-legend-label">${escapeHtml(d.meta.label)}</span>
+      <span class="chart-legend-pct">${pct}%</span>
+      <span class="chart-legend-amount">${formatCurrency(d.amount)}</span>
+    `;
+    frag.appendChild(row);
+  });
+  legendEl.appendChild(frag);
+}
+
 // ─── Render ───────────────────────────────────────────────────────────────────
 
 function renderAll() {
@@ -131,6 +250,7 @@ function renderAll() {
   renderSummary();
   renderCategoryFilters();
   renderTransactions();
+  renderChart();
 }
 
 function renderMonthLabel() {
@@ -505,6 +625,10 @@ function init() {
   document.getElementById('btnExport').addEventListener('click',     exportData);
   document.getElementById('btnOpenImport').addEventListener('click', triggerImport);
   document.getElementById('importFileInput').addEventListener('change', handleImport);
+
+  // Chart mode toggle
+  document.getElementById('chartModeExpense').addEventListener('click', () => setChartMode('expense'));
+  document.getElementById('chartModeIncome').addEventListener('click',  () => setChartMode('income'));
 
   // Filters
   document.getElementById('filterCategory').addEventListener('change', renderTransactions);

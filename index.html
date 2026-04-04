@@ -24,6 +24,7 @@
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body class="bg-gray-50 font-sans text-gray-900 min-h-screen">
 
@@ -74,6 +75,30 @@
         <span class="summary-label text-expense-text">Expenses</span>
         <span id="totalExpenses" class="summary-value text-expense">$0.00</span>
       </div>
+    </section>
+
+    <!-- Pie Chart -->
+    <section class="card" aria-label="Category breakdown chart">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-sm font-semibold text-gray-700">By Category</h2>
+        <div class="type-toggle" role="group" aria-label="Chart mode">
+          <button id="chartModeExpense" class="type-btn active-expense">
+            <i class="fa-solid fa-arrow-down text-xs mr-1"></i>Expenses
+          </button>
+          <button id="chartModeIncome" class="type-btn">
+            <i class="fa-solid fa-arrow-up text-xs mr-1"></i>Income
+          </button>
+        </div>
+      </div>
+      <div id="chartWrap" class="chart-wrap">
+        <canvas id="pieChart"></canvas>
+        <div id="chartCenter" class="chart-center"></div>
+      </div>
+      <p id="chartEmpty" class="text-center text-gray-400 text-sm py-6 hidden">
+        <i class="fa-regular fa-chart-pie text-2xl block mb-2"></i>
+        No data for this period.
+      </p>
+      <div id="chartLegend" class="chart-legend"></div>
     </section>
 
     <!-- Add Transaction Form -->
