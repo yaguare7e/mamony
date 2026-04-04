@@ -149,30 +149,6 @@
       </div>
     </section>
 
-    <!-- Pie Chart -->
-    <section class="card" aria-label="Category breakdown chart">
-      <div class="flex items-center justify-between mb-4">
-        <h2 class="text-sm font-semibold text-gray-700 dark:text-slate-300">By Category</h2>
-        <div class="type-toggle" role="group" aria-label="Chart mode">
-          <button id="chartModeExpense" class="type-btn active-expense">
-            <i class="fa-solid fa-arrow-down text-xs mr-1"></i>Expenses
-          </button>
-          <button id="chartModeIncome" class="type-btn">
-            <i class="fa-solid fa-arrow-up text-xs mr-1"></i>Income
-          </button>
-        </div>
-      </div>
-      <div id="chartWrap" class="chart-wrap">
-        <canvas id="pieChart"></canvas>
-        <div id="chartCenter" class="chart-center"></div>
-      </div>
-      <p id="chartEmpty" class="text-center text-gray-400 dark:text-slate-600 text-sm py-6 hidden">
-        <i class="fa-regular fa-chart-pie text-2xl block mb-2"></i>
-        No data for this period.
-      </p>
-      <div id="chartLegend" class="chart-legend"></div>
-    </section>
-
     <!-- Add Transaction Form -->
     <section class="card" aria-label="Add transaction">
       <div class="flex items-center justify-between mb-4">
@@ -225,6 +201,30 @@
           <span id="submitBtnLabel">Add Income</span>
         </button>
       </form>
+    </section>
+
+    <!-- Pie Chart -->
+    <section class="card" aria-label="Category breakdown chart">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-sm font-semibold text-gray-700 dark:text-slate-300">By Category</h2>
+        <div class="type-toggle" role="group" aria-label="Chart mode">
+          <button id="chartModeExpense" class="type-btn active-expense">
+            <i class="fa-solid fa-arrow-down text-xs mr-1"></i>Expenses
+          </button>
+          <button id="chartModeIncome" class="type-btn">
+            <i class="fa-solid fa-arrow-up text-xs mr-1"></i>Income
+          </button>
+        </div>
+      </div>
+      <div id="chartWrap" class="chart-wrap">
+        <canvas id="pieChart"></canvas>
+        <div id="chartCenter" class="chart-center"></div>
+      </div>
+      <p id="chartEmpty" class="text-center text-gray-400 dark:text-slate-600 text-sm py-6 hidden">
+        <i class="fa-regular fa-chart-pie text-2xl block mb-2"></i>
+        No data for this period.
+      </p>
+      <div id="chartLegend" class="chart-legend"></div>
     </section>
 
     <!-- Transaction History -->
