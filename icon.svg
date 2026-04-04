@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <style>
+    .bg { fill: #059669; }
+    .m  { fill: none; stroke: #ffffff; }
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #1e293b; }
+      .m  { stroke: #34d399; }
+    }
+  </style>
+
+  <!-- Rounded-square background -->
+  <rect class="bg" width="512" height="512" rx="112"/>
+
+  <!-- Bold M — stroke-based, round caps/joins for a modern feel -->
+  <polyline class="m"
+    points="126,388 126,130 256,288 386,130 386,388"
+    stroke-width="58"
+    stroke-linecap="round"
+    stroke-linejoin="round"/>
+</svg>

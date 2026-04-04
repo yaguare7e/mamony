@@ -4,6 +4,79 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>MaMony — Expense Tracker</title>
+
+  <!-- PWA manifest & homescreen -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#059669" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#1e293b"  media="(prefers-color-scheme: dark)" />
+
+  <!-- iOS homescreen -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="MaMony" />
+  <!-- href is a placeholder; replaced with a canvas-generated PNG below -->
+  <link id="ati" rel="apple-touch-icon" href="icon.svg" />
+
+  <!-- Browser tab favicon (SVG → dark-mode adaptive) -->
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
+
+  <!-- Generate a theme-aware PNG for apple-touch-icon at runtime -->
+  <script>
+  (function () {
+    var mq   = window.matchMedia('(prefers-color-scheme: dark)');
+    var dark = mq.matches;
+
+    function rr(ctx, w, h, r) {
+      // roundRect with fallback for older Safari
+      if (ctx.roundRect) { ctx.roundRect(0, 0, w, h, r); return; }
+      ctx.moveTo(r, 0); ctx.lineTo(w - r, 0); ctx.arcTo(w, 0, w, r, r);
+      ctx.lineTo(w, h - r); ctx.arcTo(w, h, w - r, h, r);
+      ctx.lineTo(r, h);    ctx.arcTo(0, h, 0, h - r, r);
+      ctx.lineTo(0, r);    ctx.arcTo(0, 0, r, 0, r);
+      ctx.closePath();
+    }
+
+    function buildPng(size, isDark, cb) {
+      var c   = document.createElement('canvas');
+      c.width = c.height = size;
+      var ctx = c.getContext('2d');
+      var k   = size / 512;
+      var rad = Math.round(112 * k);
+
+      // background
+      ctx.beginPath();
+      rr(ctx, size, size, rad);
+      ctx.fillStyle = isDark ? '#1e293b' : '#059669';
+      ctx.fill();
+
+      // M polyline
+      var pts = [[126, 388], [126, 130], [256, 288], [386, 130], [386, 388]];
+      ctx.strokeStyle  = isDark ? '#34d399' : '#ffffff';
+      ctx.lineWidth    = Math.round(58 * k);
+      ctx.lineCap      = 'round';
+      ctx.lineJoin     = 'round';
+      ctx.beginPath();
+      ctx.moveTo(pts[0][0] * k, pts[0][1] * k);
+      for (var i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0] * k, pts[i][1] * k);
+      ctx.stroke();
+
+      c.toBlob(cb, 'image/png');
+    }
+
+    var prevUrl = null;
+    function setIcon() {
+      buildPng(180, dark, function (blob) {
+        if (prevUrl) URL.revokeObjectURL(prevUrl);
+        prevUrl = URL.createObjectURL(blob);
+        var el = document.getElementById('ati');
+        if (el) el.href = prevUrl;
+      });
+    }
+
+    setIcon();
+    mq.addEventListener('change', function (e) { dark = e.matches; setIcon(); });
+  }());
+  </script>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
   <link rel="stylesheet" href="styles.css" />
