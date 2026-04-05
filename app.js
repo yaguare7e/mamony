@@ -238,12 +238,17 @@ async function fetchRates() {
   const btn = document.getElementById('btnRefreshRates');
   if (btn) btn.classList.add('spinning');
   try {
-    const res  = await fetch('https://open.er-api.com/v6/latest/USD');
-    if (!res.ok) throw new Error('network');
-    const data = await res.json();
-    liveRates  = {
-      USD_PYG: Math.round(data.rates.PYG),
-      USD_ARS: Math.round(data.rates.ARS),
+    // Fetch PYG and ARS blue in parallel
+    const [pygRes, arsRes] = await Promise.all([
+      fetch('https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json'),
+      fetch('https://api.bluelytics.com.ar/v2/latest'),
+    ]);
+    if (!pygRes.ok || !arsRes.ok) throw new Error('network');
+    const pygData = await pygRes.json();
+    const arsData = await arsRes.json();
+    liveRates = {
+      USD_PYG: Math.round(pygData.usd.pyg),
+      USD_ARS: Math.round(arsData.blue.value_sell), // real blue-dollar sell rate
     };
     saveRates();
     renderRatesBar();
