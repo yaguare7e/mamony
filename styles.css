@@ -570,6 +570,107 @@ select.form-input option,
   min-width: 72px;
 }
 
+/* ─── Base Currency Toggle (summary) ─────────────────────────────────────── */
+.base-curr-btn {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 3px 10px;
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  background: var(--bg-surface);
+  color: var(--text-3);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.base-curr-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-1);
+  border-color: var(--text-3);
+}
+
+/* ─── Currency Toggle (inside form) ──────────────────────────────────────── */
+.curr-toggle-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.curr-toggle {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.curr-btn {
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 5px 10px;
+  background: transparent;
+  color: var(--text-4);
+  cursor: pointer;
+  border: none;
+  border-right: 1px solid var(--border);
+  outline: none;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
+}
+
+.curr-btn:last-child { border-right: none; }
+
+.curr-btn.active-usd { background: #dbeafe; color: #1d4ed8; }
+.curr-btn.active-pyg { background: #fef9c3; color: #92400e; }
+.curr-btn.active-ars { background: #d1fae5; color: #065f46; }
+
+@media (prefers-color-scheme: dark) {
+  .curr-btn.active-usd { background: #1e3a5f; color: #93c5fd; }
+  .curr-btn.active-pyg { background: #422006; color: #fde68a; }
+  .curr-btn.active-ars { background: #064e3b; color: #6ee7b7; }
+}
+
+/* ─── Rates Bar ───────────────────────────────────────────────────────────── */
+.rates-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+
+#ratesBar {
+  font-size: 0.62rem;
+  color: var(--text-4);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rates-refresh {
+  border: none;
+  background: transparent;
+  color: var(--text-4);
+  cursor: pointer;
+  padding: 3px;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  flex-shrink: 0;
+  transition: color 0.15s;
+}
+
+.rates-refresh:hover { color: var(--text-1); }
+
+.rates-refresh.spinning i {
+  display: inline-block;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 /* ─── Category Management Modal ──────────────────────────────────────────── */
 .cat-modal-box {
   max-width: 420px;

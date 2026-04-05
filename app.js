@@ -52,6 +52,17 @@ const PICKABLE_ICONS = [
 
 const ALL_CATS = [...CATEGORIES.income, ...CATEGORIES.expense];
 
+const RATES_KEY    = 'mamony_rates';
+const BASE_CURR_KEY = 'mamony_base_currency';
+
+const CURRENCIES = {
+  USD: { symbol: '$',    code: 'USD', label: 'USD', decimals: 2, locale: 'en-US' },
+  PYG: { symbol: '₲',   code: 'PYG', label: 'PYG', decimals: 0, locale: 'es-PY' },
+  ARS: { symbol: 'ARS$', code: 'ARS', label: 'ARS', decimals: 0, locale: 'es-AR' },
+};
+
+const DEFAULT_RATES = { USD_PYG: 7800, USD_ARS: 1200 };
+
 const CHART_PALETTE = [
   '#f43f5e', '#fb923c', '#facc15', '#4ade80', '#22d3ee',
   '#818cf8', '#c084fc', '#fb7185', '#6ee7b7', '#67e8f9',
@@ -70,6 +81,9 @@ let chartInstance     = null;
 let customCategories  = { income: [], expense: [] };
 let catModalType      = 'expense';
 let selectedIcon      = PICKABLE_ICONS[0];
+let liveRates         = { ...DEFAULT_RATES };
+let currentCurrency   = 'USD';
+let baseCurrency      = 'USD';
 
 // ─── Dark mode ────────────────────────────────────────────────────────────────
 
@@ -82,11 +96,32 @@ function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 }
 
+// Format an amount in a specific currency (e.g. for transaction rows)
+function formatAmount(amount, currency) {
+  const c   = CURRENCIES[currency] || CURRENCIES.USD;
+  const abs = Math.abs(amount);
+  return c.symbol + '\u00a0' + abs.toLocaleString(c.locale, {
+    minimumFractionDigits: c.decimals,
+    maximumFractionDigits: c.decimals,
+  });
+}
+
+// Format in the current base/display currency (e.g. for summary cards)
 function formatCurrency(amount) {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency', currency: 'USD',
-    minimumFractionDigits: 2, maximumFractionDigits: 2,
-  }).format(amount);
+  return formatAmount(amount, baseCurrency);
+}
+
+// Convert amount between any two currencies using given rates (or liveRates)
+function convertTo(amount, fromCurrency, toCurrency, rates) {
+  if (fromCurrency === toCurrency) return amount;
+  const r = rates || liveRates;
+  let usd;
+  if      (fromCurrency === 'PYG') usd = amount / r.USD_PYG;
+  else if (fromCurrency === 'ARS') usd = amount / r.USD_ARS;
+  else                              usd = amount; // already USD
+  if      (toCurrency === 'PYG')  return usd * r.USD_PYG;
+  else if (toCurrency === 'ARS')  return usd * r.USD_ARS;
+  return usd; // to USD
 }
 
 function formatDate(isoDate) {
@@ -170,6 +205,45 @@ function saveCustomCategories() {
   localStorage.setItem(CUSTOM_CATS_KEY, JSON.stringify(customCategories));
 }
 
+// ─── Rates ────────────────────────────────────────────────────────────────────
+
+function loadRates() {
+  try {
+    const raw = localStorage.getItem(RATES_KEY);
+    if (raw) {
+      const p = JSON.parse(raw);
+      if (p.USD_PYG && p.USD_ARS) { liveRates = p; return; }
+    }
+  } catch {}
+  liveRates = { ...DEFAULT_RATES };
+}
+
+function saveRates() {
+  localStorage.setItem(RATES_KEY, JSON.stringify(liveRates));
+}
+
+async function fetchRates() {
+  const btn = document.getElementById('btnRefreshRates');
+  if (btn) btn.classList.add('spinning');
+  try {
+    const res  = await fetch('https://open.er-api.com/v6/latest/USD');
+    if (!res.ok) throw new Error('network');
+    const data = await res.json();
+    liveRates  = {
+      USD_PYG: Math.round(data.rates.PYG),
+      USD_ARS: Math.round(data.rates.ARS),
+    };
+    saveRates();
+    renderRatesBar();
+    renderSummary();
+    renderChart();
+  } catch {
+    // silently use cached / default rates
+  } finally {
+    if (btn) btn.classList.remove('spinning');
+  }
+}
+
 // ─── Derived data ─────────────────────────────────────────────────────────────
 
 function transactionsForMonth(year, month) {
@@ -182,10 +256,16 @@ function transactionsForMonth(year, month) {
 function computeSummary(txList) {
   let income = 0, expense = 0;
   txList.forEach(t => {
-    if (t.type === 'income')  income  += t.amount;
-    else                       expense += t.amount;
+    const rates = t.savedRates || liveRates;
+    const base  = convertTo(t.amount, t.currency || 'USD', baseCurrency, rates);
+    if (t.type === 'income') income  += base;
+    else                      expense += base;
   });
   return { income, expense, balance: income - expense };
+}
+
+function hasMixedCurrencies(txList) {
+  return txList.some(t => (t.currency || 'USD') !== baseCurrency);
 }
 
 // ─── Chart ────────────────────────────────────────────────────────────────────
@@ -193,7 +273,11 @@ function computeSummary(txList) {
 function buildChartData(type) {
   const monthTx = transactionsForMonth(viewYear, viewMonth).filter(t => t.type === type);
   const totals  = {};
-  monthTx.forEach(t => { totals[t.category] = (totals[t.category] || 0) + t.amount; });
+  monthTx.forEach(t => {
+    const rates = t.savedRates || liveRates;
+    const base  = convertTo(t.amount, t.currency || 'USD', baseCurrency, rates);
+    totals[t.category] = (totals[t.category] || 0) + base;
+  });
   return Object.entries(totals)
     .map(([id, amount]) => ({ id, amount, meta: getCatMeta(id) }))
     .sort((a, b) => b.amount - a.amount);
@@ -324,12 +408,28 @@ function renderSummary() {
   const monthTx = transactionsForMonth(viewYear, viewMonth);
   const { income, expense, balance } = computeSummary(monthTx);
 
-  const balEl = document.getElementById('totalBalance');
-  balEl.textContent = formatCurrency(balance);
-  balEl.className = 'summary-value ' + (balance >= 0 ? 'text-gray-900' : 'text-expense');
+  const mixed  = hasMixedCurrencies(monthTx);
+  const prefix = mixed ? '≈\u00a0' : '';
 
-  document.getElementById('totalIncome').textContent   = formatCurrency(income);
-  document.getElementById('totalExpenses').textContent = formatCurrency(expense);
+  const balEl = document.getElementById('totalBalance');
+  balEl.textContent = prefix + formatCurrency(balance);
+  balEl.className   = 'summary-value ' + (balance >= 0 ? 'text-gray-900' : 'text-expense');
+
+  document.getElementById('totalIncome').textContent   = prefix + formatCurrency(income);
+  document.getElementById('totalExpenses').textContent = prefix + formatCurrency(expense);
+
+  // Update base-currency toggle label
+  const bc = CURRENCIES[baseCurrency];
+  const btn = document.getElementById('baseCurrBtn');
+  if (btn) btn.textContent = bc.symbol + '\u00a0' + bc.code;
+}
+
+function renderRatesBar() {
+  const el = document.getElementById('ratesBar');
+  if (!el) return;
+  const pyg = Math.round(liveRates.USD_PYG).toLocaleString('es-PY');
+  const ars = Math.round(liveRates.USD_ARS).toLocaleString('es-AR');
+  el.textContent = `1 USD = ₲\u00a0${pyg}  ·  1 USD = ARS$\u00a0${ars}`;
 }
 
 function renderCategoryFilters() {
@@ -401,7 +501,7 @@ function createTxElement(tx) {
         <span>${formatDate(tx.date)}</span>
       </div>
     </div>
-    <div class="tx-amount ${tx.type}">${sign}${formatCurrency(tx.amount)}</div>
+    <div class="tx-amount ${tx.type}">${sign}${formatAmount(tx.amount, tx.currency || 'USD')}</div>
     <button class="tx-delete" data-id="${tx.id}" aria-label="Delete transaction" title="Delete">
       <i class="fa-solid fa-xmark text-xs pointer-events-none"></i>
     </button>
@@ -450,6 +550,29 @@ function setType(type) {
   clearFormError();
 }
 
+// ─── Currency ─────────────────────────────────────────────────────────────────
+
+function setCurrency(currency) {
+  currentCurrency = currency;
+  document.querySelectorAll('.curr-btn').forEach(b => {
+    b.classList.remove('active-usd', 'active-pyg', 'active-ars');
+    if (b.dataset.currency === currency) b.classList.add(`active-${currency.toLowerCase()}`);
+  });
+  const inp = document.getElementById('amount');
+  if (currency === 'USD') {
+    inp.step = '0.01'; inp.min = '0.01'; inp.placeholder = '0.00';
+  } else {
+    inp.step = '1';    inp.min = '1';    inp.placeholder = '0';
+  }
+}
+
+function setBaseCurrency(currency) {
+  baseCurrency = currency;
+  localStorage.setItem(BASE_CURR_KEY, currency);
+  renderSummary();
+  renderChart();
+}
+
 // ─── Form ─────────────────────────────────────────────────────────────────────
 
 function showFormError(msg) {
@@ -488,14 +611,20 @@ function handleFormSubmit(e) {
     return;
   }
 
+  const roundedAmount = CURRENCIES[currentCurrency].decimals === 0
+    ? Math.round(amount)
+    : Math.round(amount * 100) / 100;
+
   const tx = {
-    id:        generateId(),
-    type:      currentType,
-    amount:    Math.round(amount * 100) / 100,
+    id:         generateId(),
+    type:       currentType,
+    amount:     roundedAmount,
+    currency:   currentCurrency,
+    savedRates: { ...liveRates },
     category,
     date,
-    note:      note.slice(0, 80),
-    createdAt: Date.now(),
+    note:       note.slice(0, 80),
+    createdAt:  Date.now(),
   };
 
   transactions.unshift(tx);
@@ -772,12 +901,15 @@ function handleDeleteCategory(id, type) {
 function init() {
   transactions     = loadTransactions();
   customCategories = loadCustomCategories();
+  loadRates();
+  baseCurrency = localStorage.getItem(BASE_CURR_KEY) || 'USD';
 
   // Set default date to today
   document.getElementById('date').value = todayISO();
 
-  // Initialise type
+  // Initialise type & currency
   setType('expense');
+  setCurrency('USD');
 
   // Month nav
   document.getElementById('btnPrevMonth').addEventListener('click', prevMonth);
@@ -819,6 +951,24 @@ function init() {
 
   // Re-render chart when OS theme changes so tooltip/border colors update
   darkMQ.addEventListener('change', renderChart);
+
+  // Currency toggle (transaction form)
+  document.querySelectorAll('.curr-btn').forEach(btn =>
+    btn.addEventListener('click', () => setCurrency(btn.dataset.currency))
+  );
+
+  // Base currency toggle (summary)
+  document.getElementById('baseCurrBtn').addEventListener('click', () => {
+    const order = ['USD', 'PYG', 'ARS'];
+    setBaseCurrency(order[(order.indexOf(baseCurrency) + 1) % order.length]);
+  });
+
+  // Refresh rates button
+  document.getElementById('btnRefreshRates').addEventListener('click', fetchRates);
+
+  // Fetch live rates on load (async – uses cached rates until it returns)
+  renderRatesBar();
+  fetchRates();
 
   // Category management modal
   document.getElementById('btnManageCats').addEventListener('click', openCatModal);

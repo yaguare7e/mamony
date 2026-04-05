@@ -137,18 +137,23 @@
     </div>
 
     <!-- Summary Cards -->
-    <section class="grid grid-cols-3 gap-3" aria-label="Monthly summary">
-      <div class="summary-card">
-        <span class="summary-label">Balance</span>
-        <span id="totalBalance" class="summary-value text-gray-900">$0.00</span>
+    <section aria-label="Monthly summary">
+      <div class="flex justify-end mb-2">
+        <button id="baseCurrBtn" class="base-curr-btn" title="Tap to change display currency">$ USD</button>
       </div>
-      <div class="summary-card">
-        <span class="summary-label text-income-text">Income</span>
-        <span id="totalIncome" class="summary-value text-income">$0.00</span>
-      </div>
-      <div class="summary-card">
-        <span class="summary-label text-expense-text">Expenses</span>
-        <span id="totalExpenses" class="summary-value text-expense">$0.00</span>
+      <div class="grid grid-cols-3 gap-3">
+        <div class="summary-card">
+          <span class="summary-label">Balance</span>
+          <span id="totalBalance" class="summary-value text-gray-900">$0.00</span>
+        </div>
+        <div class="summary-card">
+          <span class="summary-label text-income-text">Income</span>
+          <span id="totalIncome" class="summary-value text-income">$0.00</span>
+        </div>
+        <div class="summary-card">
+          <span class="summary-label text-expense-text">Expenses</span>
+          <span id="totalExpenses" class="summary-value text-expense">$0.00</span>
+        </div>
       </div>
     </section>
 
@@ -167,15 +172,28 @@
       </div>
 
       <form id="transactionForm" novalidate class="space-y-3">
+
+        <!-- Currency selector + live rates -->
+        <div class="curr-toggle-wrap">
+          <div class="curr-toggle">
+            <button type="button" class="curr-btn" data-currency="USD">$ USD</button>
+            <button type="button" class="curr-btn" data-currency="PYG">₲ PYG</button>
+            <button type="button" class="curr-btn" data-currency="ARS">ARS$</button>
+          </div>
+          <div class="rates-bar">
+            <span id="ratesBar">—</span>
+            <button id="btnRefreshRates" type="button" class="rates-refresh" title="Refresh rates">
+              <i class="fa-solid fa-rotate-right"></i>
+            </button>
+          </div>
+        </div>
+
         <div class="grid grid-cols-2 gap-3">
           <div class="form-group">
             <label for="amount" class="form-label">Amount</label>
-            <div class="relative">
-              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500 text-sm">$</span>
-              <input type="number" id="amount" name="amount" placeholder="0.00"
-                min="0.01" step="0.01"
-                class="form-input pl-7" autocomplete="off" inputmode="decimal" />
-            </div>
+            <input type="number" id="amount" name="amount" placeholder="0.00"
+              min="0.01" step="0.01"
+              class="form-input" autocomplete="off" inputmode="decimal" />
           </div>
           <div class="form-group">
             <label for="date" class="form-label">Date</label>
