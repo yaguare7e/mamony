@@ -481,6 +481,31 @@ function renderTransactions() {
   list.appendChild(frag);
 }
 
+function buildConversions(tx) {
+  const from   = tx.currency || 'USD';
+  const rates  = tx.savedRates || liveRates;
+  const others = Object.keys(CURRENCIES).filter(c => c !== from);
+  return others.map(to => {
+    const converted = convertTo(tx.amount, from, to, rates);
+    return `<span class="tx-conv-item">${formatAmount(converted, to)}</span>`;
+  }).join('<span class="tx-conv-sep">·</span>');
+}
+
+function toggleTxExpand(item) {
+  const isOpen = item.classList.contains('tx-expanded');
+  // close all
+  document.querySelectorAll('.tx-item.tx-expanded').forEach(el => {
+    el.classList.remove('tx-expanded');
+    const conv = el.querySelector('.tx-conversions');
+    if (conv) conv.classList.add('hidden');
+  });
+  if (!isOpen) {
+    item.classList.add('tx-expanded');
+    const conv = item.querySelector('.tx-conversions');
+    if (conv) conv.classList.remove('hidden');
+  }
+}
+
 function createTxElement(tx) {
   const meta = getCatMeta(tx.category);
   const div  = document.createElement('div');
@@ -490,21 +515,27 @@ function createTxElement(tx) {
   const sign = tx.type === 'income' ? '+' : '-';
 
   div.innerHTML = `
-    <div class="tx-icon ${tx.type}">
-      <i class="fa-solid ${meta.icon}"></i>
-    </div>
-    <div class="tx-meta">
-      <div class="tx-note">${escapeHtml(tx.note || meta.label)}</div>
-      <div class="tx-cat-date">
-        <span>${escapeHtml(meta.label)}</span>
-        <span>·</span>
-        <span>${formatDate(tx.date)}</span>
+    <div class="tx-row">
+      <div class="tx-icon ${tx.type}">
+        <i class="fa-solid ${meta.icon}"></i>
       </div>
+      <div class="tx-meta">
+        <div class="tx-note">${escapeHtml(tx.note || meta.label)}</div>
+        <div class="tx-cat-date">
+          <span>${escapeHtml(meta.label)}</span>
+          <span>·</span>
+          <span>${formatDate(tx.date)}</span>
+        </div>
+      </div>
+      <div class="tx-amount ${tx.type}">${sign}${formatAmount(tx.amount, tx.currency || 'USD')}</div>
+      <button class="tx-delete" data-id="${tx.id}" aria-label="Delete transaction" title="Delete">
+        <i class="fa-solid fa-xmark text-xs pointer-events-none"></i>
+      </button>
     </div>
-    <div class="tx-amount ${tx.type}">${sign}${formatAmount(tx.amount, tx.currency || 'USD')}</div>
-    <button class="tx-delete" data-id="${tx.id}" aria-label="Delete transaction" title="Delete">
-      <i class="fa-solid fa-xmark text-xs pointer-events-none"></i>
-    </button>
+    <div class="tx-conversions hidden">
+      <i class="fa-solid fa-right-left tx-conv-icon"></i>
+      ${buildConversions(tx)}
+    </div>
   `;
 
   return div;
@@ -925,7 +956,9 @@ function init() {
   // Delete via event delegation
   document.getElementById('transactionList').addEventListener('click', e => {
     const btn = e.target.closest('.tx-delete');
-    if (btn) openDeleteModal(btn.dataset.id);
+    if (btn) { openDeleteModal(btn.dataset.id); return; }
+    const item = e.target.closest('.tx-item');
+    if (item) toggleTxExpand(item);
   });
 
   // Modal

@@ -292,17 +292,52 @@ select.form-input option,
 /* ─── Transaction Items ───────────────────────────────────────────────────── */
 .tx-item {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  flex-direction: column;
   padding: 12px 14px;
   background: var(--bg-surface);
   border: 1px solid var(--border);
   border-radius: 10px;
   transition: background 0.12s;
   animation: fadeSlideIn 0.2s ease both;
+  cursor: pointer;
 }
 
 .tx-item:hover { background: var(--bg-tx-hover); }
+
+.tx-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.tx-conversions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-top: 8px;
+  margin-top: 8px;
+  border-top: 1px solid var(--border);
+  font-size: 0.72rem;
+  color: var(--text-3);
+}
+
+.tx-conversions.hidden { display: none; }
+
+.tx-conv-icon {
+  font-size: 0.65rem;
+  color: var(--text-4);
+  flex-shrink: 0;
+}
+
+.tx-conv-item {
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.tx-conv-sep {
+  color: var(--text-5);
+}
 
 @keyframes fadeSlideIn {
   from { opacity: 0; transform: translateY(-6px); }
