@@ -85,6 +85,16 @@ let liveRates         = { ...DEFAULT_RATES };
 let currentCurrency   = 'USD';
 let baseCurrency      = 'USD';
 
+// ─── Sync State ───────────────────────────────────────────────────────────────
+
+const FIREBASE_DB_URL  = (window.FIREBASE_DB_URL || '').replace(/\/$/, '');
+const SYNC_KEY_STORAGE = 'mamony_sync_key';
+
+let syncKey         = null;
+let syncEventSource = null;
+let isSyncing       = false;
+let syncPushTimer   = null;
+
 // ─── Dark mode ────────────────────────────────────────────────────────────────
 
 const darkMQ = window.matchMedia('(prefers-color-scheme: dark)');
@@ -180,6 +190,7 @@ function loadTransactions() {
 
 function saveTransactions() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(transactions));
+  schedulePush();
 }
 
 function loadCustomCategories() {
@@ -203,6 +214,7 @@ function loadCustomCategories() {
 
 function saveCustomCategories() {
   localStorage.setItem(CUSTOM_CATS_KEY, JSON.stringify(customCategories));
+  schedulePush();
 }
 
 // ─── Rates ────────────────────────────────────────────────────────────────────
@@ -927,6 +939,147 @@ function handleDeleteCategory(id, type) {
   showToast(`"${cat.label}" removed.`);
 }
 
+// ─── Sync ─────────────────────────────────────────────────────────────────────
+
+function generateSyncKey() {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = (Math.random() * 16) | 0;
+    return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
+  });
+}
+
+function loadSyncKey()    { return localStorage.getItem(SYNC_KEY_STORAGE) || null; }
+function saveSyncKey(key) { localStorage.setItem(SYNC_KEY_STORAGE, key); }
+function clearSyncKey()   { localStorage.removeItem(SYNC_KEY_STORAGE); }
+
+function schedulePush() {
+  if (!syncKey || !FIREBASE_DB_URL) return;
+  clearTimeout(syncPushTimer);
+  syncPushTimer = setTimeout(pushToCloud, 5);
+}
+
+async function pushToCloud() {
+  if (!syncKey || !FIREBASE_DB_URL) return;
+  isSyncing = true;
+  setSyncStatus('syncing');
+  const payload = { transactions, customCategories, lastModified: Date.now() };
+  try {
+    const res = await fetch(`${FIREBASE_DB_URL}/mamony/${syncKey}.json`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    localStorage.setItem('mamony_last_modified', String(payload.lastModified));
+    setSyncStatus('connected');
+  } catch {
+    setSyncStatus('error');
+  } finally {
+    setTimeout(() => { isSyncing = false; }, 500);
+  }
+}
+
+function startSyncListener() {
+  if (!syncKey || !FIREBASE_DB_URL) return;
+  stopSyncListener();
+  syncEventSource = new EventSource(`${FIREBASE_DB_URL}/mamony/${syncKey}.json`);
+  syncEventSource.addEventListener('put', handleRemoteData);
+  syncEventSource.onerror = () => setSyncStatus('error');
+  setSyncStatus('connected');
+}
+
+function stopSyncListener() {
+  if (syncEventSource) { syncEventSource.close(); syncEventSource = null; }
+  setSyncStatus('off');
+}
+
+function handleRemoteData(event) {
+  if (isSyncing) return;
+  let parsed; try { parsed = JSON.parse(event.data); } catch { return; }
+  const remote = parsed.data;
+  if (!remote || typeof remote.lastModified !== 'number') return;
+  const localModified = parseInt(localStorage.getItem('mamony_last_modified') || '0', 10);
+  if (remote.lastModified <= localModified) return;
+
+  transactions     = Array.isArray(remote.transactions) ? remote.transactions : [];
+  customCategories = (remote.customCategories && typeof remote.customCategories === 'object')
+    ? remote.customCategories : { income: [], expense: [] };
+
+  isSyncing = true;
+  localStorage.setItem(STORAGE_KEY,     JSON.stringify(transactions));
+  localStorage.setItem(CUSTOM_CATS_KEY, JSON.stringify(customCategories));
+  localStorage.setItem('mamony_last_modified', String(remote.lastModified));
+  isSyncing = false;
+
+  renderAll();
+  showToast('Data synced from another device.');
+}
+
+function setSyncStatus(status) {
+  const dot = document.getElementById('syncDot');
+  if (dot) dot.className = `sync-dot sync-dot--${status}`;
+}
+
+function renderSyncModal() {
+  const hasSyncKey = !!syncKey;
+  document.getElementById('syncSetupSection').classList.toggle('hidden', hasSyncKey);
+  document.getElementById('syncActiveSection').classList.toggle('hidden', !hasSyncKey);
+  if (hasSyncKey) {
+    document.getElementById('syncKeyDisplay').textContent =
+      syncKey.slice(0, 8) + '••••••••••••••••••••' + syncKey.slice(-4);
+    const dot = document.getElementById('syncDot')?.className || '';
+    const statusMap = { connected: 'Connected', syncing: 'Syncing…', error: 'Error — check connection' };
+    const s = Object.keys(statusMap).find(k => dot.includes(k));
+    document.getElementById('syncStatusText').textContent = statusMap[s] || 'Connecting…';
+  }
+}
+
+function openSyncModal()  { renderSyncModal(); document.getElementById('syncModal').classList.remove('hidden'); }
+function closeSyncModal() { document.getElementById('syncModal').classList.add('hidden'); }
+
+function activateSync(key) {
+  syncKey = key;
+  saveSyncKey(key);
+  startSyncListener();
+  pushToCloud();
+  renderSyncModal();
+}
+
+function deactivateSync() {
+  stopSyncListener();
+  syncKey = null;
+  clearSyncKey();
+  renderSyncModal();
+  showToast('Sync disconnected.');
+}
+
+function handleGenerateKey() {
+  activateSync(generateSyncKey());
+  showToast('Sync key generated. Syncing…');
+  closeSyncModal();
+}
+
+function handleUseSyncKey() {
+  const input = document.getElementById('syncKeyInput');
+  const raw   = input.value.trim().toLowerCase();
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(raw)) {
+    showToast('Invalid key format — paste the full UUID.');
+    return;
+  }
+  input.value = '';
+  activateSync(raw);
+  showToast('Sync key accepted. Pulling data…');
+  closeSyncModal();
+}
+
+function handleCopyKey() {
+  if (!syncKey) return;
+  navigator.clipboard.writeText(syncKey)
+    .then(() => showToast('Sync key copied.'))
+    .catch(() => showToast('Copy failed — select key manually.'));
+}
+
 // ─── Boot ─────────────────────────────────────────────────────────────────────
 
 function init() {
@@ -970,7 +1123,7 @@ function init() {
 
   // Keyboard: Escape closes any open modal
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') { closeDeleteModal(); closeCatModal(); }
+    if (e.key === 'Escape') { closeDeleteModal(); closeCatModal(); closeSyncModal(); }
   });
 
   // Export / Import
@@ -1036,6 +1189,24 @@ function init() {
   });
 
   renderAll();
+
+  // Sync modal
+  document.getElementById('btnSync').addEventListener('click', openSyncModal);
+  document.getElementById('syncModalClose').addEventListener('click', closeSyncModal);
+  document.getElementById('syncModal').addEventListener('click', e => {
+    if (e.target === document.getElementById('syncModal')) closeSyncModal();
+  });
+  document.getElementById('btnGenerateKey').addEventListener('click', handleGenerateKey);
+  document.getElementById('btnUseSyncKey').addEventListener('click', handleUseSyncKey);
+  document.getElementById('btnCopyKey').addEventListener('click', handleCopyKey);
+  document.getElementById('btnDisconnect').addEventListener('click', deactivateSync);
+  document.getElementById('syncKeyInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); handleUseSyncKey(); }
+  });
+
+  // Bootstrap sync if key was saved in a previous session
+  syncKey = loadSyncKey();
+  if (syncKey && FIREBASE_DB_URL) startSyncListener();
 }
 
 document.addEventListener('DOMContentLoaded', init);

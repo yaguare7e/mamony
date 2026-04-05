@@ -118,6 +118,10 @@
         <button id="btnExport" title="Export data" class="icon-btn">
           <i class="fa-solid fa-download text-sm"></i>
         </button>
+        <button id="btnSync" title="Cloud sync" class="icon-btn sync-btn-wrap" aria-label="Sync settings">
+          <i class="fa-solid fa-cloud text-sm"></i>
+          <span id="syncDot" class="sync-dot sync-dot--off"></span>
+        </button>
         <input type="file" id="importFileInput" accept=".json" class="hidden" />
       </div>
     </div>
@@ -326,6 +330,60 @@
         <button id="modalCancel" class="btn-secondary text-xs px-3 py-1.5">Cancel</button>
         <button id="modalConfirm" class="btn-danger text-xs px-3 py-1.5">Delete</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Sync config — set your Firebase Realtime Database URL here after setup -->
+  <script>
+    window.FIREBASE_DB_URL = ''; // e.g. 'https://mamony-abc123-default-rtdb.firebaseio.com'
+  </script>
+
+  <!-- Sync Modal -->
+  <div id="syncModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-label="Sync settings">
+    <div class="modal-box sync-modal-box">
+
+      <div class="flex items-center justify-between mb-4">
+        <p class="text-sm font-semibold" style="color:var(--text-1)">Cloud Sync</p>
+        <button id="syncModalClose" class="tx-delete" aria-label="Close">
+          <i class="fa-solid fa-xmark text-xs pointer-events-none"></i>
+        </button>
+      </div>
+
+      <div id="syncSetupSection">
+        <p class="text-xs text-gray-500 dark:text-slate-400 mb-3">
+          Sync your data across devices using a private key. No account needed — your data
+          is stored at a secret URL only you know.
+        </p>
+        <button id="btnGenerateKey" class="submit-btn" type="button">
+          <i class="fa-solid fa-key text-xs mr-1.5"></i>Generate Sync Key
+        </button>
+        <div class="cat-divider"></div>
+        <p class="form-label mb-2">Or enter a key from another device</p>
+        <input id="syncKeyInput" type="text" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+          class="form-input mb-3" autocomplete="off" spellcheck="false" />
+        <button id="btnUseSyncKey" class="submit-btn" type="button">
+          <i class="fa-solid fa-link text-xs mr-1.5"></i>Use This Key
+        </button>
+      </div>
+
+      <div id="syncActiveSection" class="hidden">
+        <p class="form-label mb-2">Your sync key</p>
+        <div class="sync-key-row mb-1">
+          <span id="syncKeyDisplay" class="sync-key-text"></span>
+          <button id="btnCopyKey" class="icon-btn" title="Copy key" aria-label="Copy sync key">
+            <i class="fa-regular fa-copy text-xs"></i>
+          </button>
+        </div>
+        <p class="text-xs text-gray-500 dark:text-slate-400 mb-4">
+          On another device: open sync settings and paste this key.
+        </p>
+        <p class="form-label mb-1">Status</p>
+        <p id="syncStatusText" class="text-xs mb-4" style="color:var(--text-3)">Connecting…</p>
+        <button id="btnDisconnect" class="btn-danger text-xs px-3 py-1.5 w-full" type="button">
+          Disconnect &amp; Clear Key
+        </button>
+      </div>
+
     </div>
   </div>
 

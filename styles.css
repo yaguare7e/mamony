@@ -828,3 +828,48 @@ select.form-input option,
   .card { padding: 1rem; }
   #transactionList { max-height: none; }
 }
+
+/* ─── Sync ────────────────────────────────────────────────────────────────── */
+.sync-btn-wrap { position: relative; }
+
+.sync-dot {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  border: 1.5px solid var(--bg-surface);
+  pointer-events: none;
+  transition: background 0.3s;
+}
+.sync-dot--off       { background: var(--text-5); }
+.sync-dot--connected { background: #22c55e; }
+.sync-dot--syncing   { background: #f59e0b; animation: pulse-dot 1s ease-in-out infinite; }
+.sync-dot--error     { background: #ef4444; }
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.35; }
+}
+
+.sync-modal-box { max-width: 360px; }
+
+.sync-key-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.sync-key-text {
+  flex: 1;
+  font-size: 0.72rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--text-2);
+  letter-spacing: 0.04em;
+  word-break: break-all;
+}
