@@ -1037,6 +1037,9 @@ function renderSyncModal() {
     const statusMap = { connected: 'Connected', syncing: 'Syncing…', error: 'Error — check connection' };
     const s = Object.keys(statusMap).find(k => dot.includes(k));
     document.getElementById('syncStatusText').textContent = statusMap[s] || 'Connecting…';
+    const lastBackup = localStorage.getItem(BACKUP_KEY);
+    const backupEl   = document.getElementById('syncBackupText');
+    if (backupEl) backupEl.textContent = lastBackup ? `Last backup: ${lastBackup}` : 'No backup yet today';
   }
 }
 
@@ -1083,6 +1086,54 @@ function handleCopyKey() {
   navigator.clipboard.writeText(syncKey)
     .then(() => showToast('Sync key copied.'))
     .catch(() => showToast('Copy failed — select key manually.'));
+}
+
+// ─── Daily Backup ─────────────────────────────────────────────────────────────
+
+const BACKUP_KEY  = 'mamony_last_backup';
+const MAX_BACKUPS = 30;
+
+function todayDate() {
+  return new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+}
+
+async function pushBackup() {
+  if (!syncKey || !FIREBASE_DB_URL) return;
+  const date    = todayDate();
+  const payload = { transactions, customCategories, backedUpAt: Date.now() };
+  try {
+    const res = await fetch(`${FIREBASE_DB_URL}/mamony/${syncKey}/backups/${date}.json`, {
+      method:  'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    localStorage.setItem(BACKUP_KEY, date);
+    renderSyncModal();
+    pruneOldBackups();
+  } catch { /* silent */ }
+}
+
+async function pruneOldBackups() {
+  if (!syncKey || !FIREBASE_DB_URL) return;
+  try {
+    const res = await fetch(
+      `${FIREBASE_DB_URL}/mamony/${syncKey}/backups.json?shallow=true`
+    );
+    if (!res.ok) return;
+    const keys = await res.json();
+    if (!keys) return;
+    const dates    = Object.keys(keys).sort();
+    const toDelete = dates.slice(0, Math.max(0, dates.length - MAX_BACKUPS));
+    await Promise.all(toDelete.map(d =>
+      fetch(`${FIREBASE_DB_URL}/mamony/${syncKey}/backups/${d}.json`, { method: 'DELETE' })
+    ));
+  } catch { /* silent */ }
+}
+
+function scheduleDailyBackup() {
+  if (!syncKey || !FIREBASE_DB_URL) return;
+  if (localStorage.getItem(BACKUP_KEY) !== todayDate()) pushBackup();
 }
 
 // ─── Boot ─────────────────────────────────────────────────────────────────────
@@ -1211,7 +1262,10 @@ function init() {
 
   // Bootstrap sync if key was saved in a previous session
   syncKey = loadSyncKey();
-  if (syncKey && FIREBASE_DB_URL) startSyncListener();
+  if (syncKey && FIREBASE_DB_URL) {
+    startSyncListener();
+    scheduleDailyBackup();
+  }
 }
 
 document.addEventListener('DOMContentLoaded', init);
