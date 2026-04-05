@@ -1098,7 +1098,7 @@ function init() {
 
   // Initialise type & currency
   setType('expense');
-  setCurrency('USD');
+  setCurrency('PYG');
 
   // Month nav
   document.getElementById('btnPrevMonth').addEventListener('click', prevMonth);
