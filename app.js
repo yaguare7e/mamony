@@ -82,8 +82,8 @@ let customCategories  = { income: [], expense: [] };
 let catModalType      = 'expense';
 let selectedIcon      = PICKABLE_ICONS[0];
 let liveRates         = { ...DEFAULT_RATES };
-let currentCurrency   = 'USD';
-let baseCurrency      = 'USD';
+let currentCurrency   = 'PYG';
+let baseCurrency      = 'PYG';
 
 // ─── Sync State ───────────────────────────────────────────────────────────────
 
@@ -1091,7 +1091,7 @@ function init() {
   transactions     = loadTransactions();
   customCategories = loadCustomCategories();
   loadRates();
-  baseCurrency = localStorage.getItem(BASE_CURR_KEY) || 'USD';
+  baseCurrency = localStorage.getItem(BASE_CURR_KEY) || 'PYG';
 
   // Set default date to today
   document.getElementById('date').value = todayISO();
