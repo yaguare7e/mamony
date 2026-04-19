@@ -412,51 +412,45 @@
 
       <div class="text-xs" style="color:var(--text-3);line-height:1.6">
 
-        <p class="font-semibold mb-1">Paso 1: Copi&aacute; tu URL</p>
-        <p class="mb-1">Esta es tu URL personal para recibir transacciones:</p>
-        <p id="apInboxUrl" class="sync-key-text mb-2" style="word-break:break-all;font-size:0.65rem;padding:6px;background:var(--bg-input);border-radius:6px"></p>
+        <p class="font-semibold mb-2" style="font-size:0.8rem">En la app Atajos del iPhone:</p>
+
+        <ol style="padding-left:1.2rem;margin-bottom:0.75rem">
+          <li class="mb-2">
+            <strong>Automatizaci&oacute;n</strong> &rarr; <strong>+</strong> &rarr; <strong>Wallet</strong>
+            <div style="color:var(--text-4);margin-top:2px">Seleccion&aacute; tus tarjetas, todas las categor&iacute;as, y <strong>Run Immediately</strong></div>
+          </li>
+          <li class="mb-2">
+            Toc&aacute; <strong>Create New Shortcut</strong>
+          </li>
+          <li class="mb-2">
+            Busc&aacute; <strong>&ldquo;Open URL&rdquo;</strong> (o &ldquo;Abrir URL&rdquo;) y agreg&aacute;la
+          </li>
+          <li class="mb-2">
+            En el campo de URL, peg&aacute; esta URL:
+            <div id="apInboxUrl" style="word-break:break-all;font-size:0.65rem;padding:8px;background:var(--bg-input);border-radius:6px;margin-top:4px;font-family:monospace"></div>
+          </li>
+          <li class="mb-2">
+            Ahora necesit&aacute;s agregar los datos de la transacci&oacute;n al final de la URL. Toc&aacute; al final del texto y agreg&aacute;:
+            <div style="margin-top:6px;padding:8px;background:var(--bg-input);border-radius:6px;font-family:monospace;font-size:0.65rem">
+              <div class="mb-1">&amp;a=<span style="color:#4ade80">[Importe]</span>&amp;m=<span style="color:#4ade80">[Comerciante]</span></div>
+            </div>
+            <div style="color:var(--text-4);margin-top:4px">Para insertar <span style="color:#4ade80">[Importe]</span>: toc&aacute; ah&iacute;, luego toc&aacute; la variable <strong>Amount</strong> que aparece arriba del teclado. Igual con <strong>Merchant</strong> para <span style="color:#4ade80">[Comerciante]</span>.</div>
+          </li>
+          <li class="mb-1">Toc&aacute; <strong>OK</strong> y listo</li>
+        </ol>
+
         <button id="btnCopyInboxUrl" class="btn-secondary text-xs px-3 py-1.5 w-full mb-3" type="button">
           <i class="fa-regular fa-copy text-xs mr-1.5"></i>Copiar URL
         </button>
 
         <div class="cat-divider"></div>
 
-        <p class="font-semibold mb-1">Paso 2: Cre&aacute; la automatizaci&oacute;n en tu iPhone</p>
-        <ol style="padding-left:1.2rem;margin-bottom:0.75rem">
-          <li class="mb-2">Abr&iacute; la app <strong>Atajos</strong></li>
-          <li class="mb-2">And&aacute; a <strong>Automatizaci&oacute;n</strong> &rarr; toc&aacute; <strong>+</strong></li>
-          <li class="mb-2">Eleg&iacute; <strong>Wallet</strong> (o Transacci&oacute;n)</li>
-          <li class="mb-2">Seleccion&aacute; <strong>Ejecutar inmediatamente</strong></li>
-          <li class="mb-2">
-            Busc&aacute; la acci&oacute;n <strong>&ldquo;Obtener contenido de URL&rdquo;</strong> y agreg&aacute;la
-          </li>
-          <li class="mb-2">
-            En la URL, peg&aacute; la URL que copiaste arriba
-          </li>
-          <li class="mb-2">
-            Cambi&aacute; el m&eacute;todo a <strong>POST</strong>
-          </li>
-          <li class="mb-2">
-            En <strong>Cuerpo de solicitud</strong>, eleg&iacute; <strong>JSON</strong> y agreg&aacute; estas 4 claves:
-            <div style="margin-top:6px;padding:8px;background:var(--bg-input);border-radius:6px">
-              <div class="mb-1"><code>merchant</code> &rarr; toc&aacute; el valor, eleg&iacute; <em>Variable del atajo</em> &rarr; <strong>Comerciante</strong></div>
-              <div class="mb-1"><code>amount</code> &rarr; <em>Variable del atajo</em> &rarr; <strong>Importe</strong></div>
-              <div class="mb-1"><code>currency</code> &rarr; <em>Variable del atajo</em> &rarr; <strong>C&oacute;digo de divisa</strong></div>
-              <div><code>ts</code> &rarr; <em>Variable del atajo</em> &rarr; <strong>Fecha actual</strong> (como Unix)</div>
-            </div>
-          </li>
-          <li class="mb-1">Toc&aacute; <strong>OK</strong> y listo</li>
-        </ol>
-
-        <div class="cat-divider"></div>
-
-        <p class="font-semibold mb-1">Listo!</p>
-        <p>Cada pago con Apple Pay se va a registrar autom&aacute;ticamente en MaMony, categorizado por el nombre del comercio.</p>
+        <p style="color:var(--text-4)">Cada pago con Apple Pay abrir&aacute; Safari brevemente para guardar la transacci&oacute;n autom&aacute;ticamente en MaMony.</p>
       </div>
 
     </div>
   </div>
 
-  <script src="app.js?v=10"></script>
+  <script src="app.js?v=11"></script>
 </body>
 </html>
