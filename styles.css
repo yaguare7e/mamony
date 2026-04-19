@@ -378,6 +378,12 @@ select.form-input option,
   gap: 4px;
 }
 
+.tx-badge-ap {
+  color: var(--text-4);
+  font-size: 0.6rem;
+  opacity: 0.7;
+}
+
 .tx-amount {
   font-size: 0.875rem;
   font-weight: 700;

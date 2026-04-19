@@ -95,6 +95,49 @@ let syncEventSource = null;
 let isSyncing       = false;
 let syncPushTimer   = null;
 
+// ─── Apple Pay Auto-Categorisation ───────────────────────────────────────────
+
+const DEFAULT_MERCHANT_MAP = [
+  { keywords: ['mcdonald', 'burger king', 'starbucks', 'uber eats', 'doordash', 'grubhub',
+               'chipotle', 'subway', 'pizza', 'restaurant', 'cafe', 'coffee', 'diner',
+               'sushi', 'taco', 'bakery', 'ice cream', 'panaderia', 'almacen', 'supermercado',
+               'carniceria', 'verduleria'], category: 'food' },
+  { keywords: ['uber', 'lyft', 'taxi', 'parking', 'gas', 'shell', 'exxon', 'chevron', 'bp',
+               'fuel', 'transit', 'metro', 'bolt', 'cabify', 'copetrol', 'petrobras',
+               'estacion'], category: 'transport' },
+  { keywords: ['amazon', 'walmart', 'target', 'costco', 'ebay', 'etsy', 'shop', 'store',
+               'mall', 'zara', 'h&m', 'nike', 'mercadolibre', 'tienda'], category: 'shopping' },
+  { keywords: ['netflix', 'spotify', 'apple.com/bill', 'hulu', 'disney', 'hbo', 'youtube',
+               'icloud', 'adobe', 'microsoft', 'openai', 'chatgpt'], category: 'subscriptions' },
+  { keywords: ['pharmacy', 'cvs', 'walgreens', 'hospital', 'clinic', 'doctor', 'dental',
+               'medical', 'farmacia', 'sanatorio'], category: 'health' },
+  { keywords: ['electric', 'water', 'internet', 'phone', 'verizon', 'att', 't-mobile',
+               'comcast', 'ande', 'essap', 'copaco', 'tigo', 'claro',
+               'personal'], category: 'utilities' },
+  { keywords: ['cinema', 'movie', 'theater', 'concert', 'ticket', 'gaming', 'steam',
+               'playstation', 'cine'], category: 'entertainment' },
+  { keywords: ['airline', 'hotel', 'airbnb', 'booking', 'flight', 'expedia', 'marriott',
+               'hilton', 'latam', 'avianca'], category: 'travel' },
+  { keywords: ['tuition', 'school', 'university', 'coursera', 'udemy',
+               'book'], category: 'education' },
+  { keywords: ['rent', 'mortgage', 'lease', 'property', 'alquiler'], category: 'housing' },
+];
+
+function categorizeMerchant(merchantName) {
+  const lower = merchantName.toLowerCase();
+  let bestMatch = null;
+  let bestLength = 0;
+  for (const rule of DEFAULT_MERCHANT_MAP) {
+    for (const kw of rule.keywords) {
+      if (lower.includes(kw) && kw.length > bestLength) {
+        bestMatch = rule.category;
+        bestLength = kw.length;
+      }
+    }
+  }
+  return bestMatch || 'other_ex';
+}
+
 // ─── Dark mode ────────────────────────────────────────────────────────────────
 
 const darkMQ = window.matchMedia('(prefers-color-scheme: dark)');
@@ -542,6 +585,7 @@ function createTxElement(tx) {
           <span>${escapeHtml(meta.label)}</span>
           <span>·</span>
           <span>${formatDate(tx.date)}</span>
+          ${tx.source === 'apple_pay' ? '<span class="tx-badge-ap" title="Apple Pay"><i class="fa-solid fa-credit-card"></i></span>' : ''}
         </div>
       </div>
       <div class="tx-amount ${tx.type}">${sign}${formatAmount(tx.amount, tx.currency || 'USD')}</div>
@@ -971,7 +1015,7 @@ async function pushToCloud() {
   const payload = { transactions, customCategories, lastModified: Date.now() };
   try {
     const res = await fetch(`${FIREBASE_DB_URL}/mamony/${syncKey}.json`, {
-      method: 'PUT',
+      method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
@@ -985,11 +1029,117 @@ async function pushToCloud() {
   }
 }
 
+async function pullFromCloud() {
+  if (!syncKey || !FIREBASE_DB_URL) return;
+  try {
+    const res = await fetch(`${FIREBASE_DB_URL}/mamony/${syncKey}.json`);
+    if (!res.ok) return;
+    const remote = await res.json();
+    if (!remote || typeof remote.lastModified !== 'number') return;
+    const localModified = parseInt(localStorage.getItem('mamony_last_modified') || '0', 10);
+    if (remote.lastModified <= localModified) return;
+
+    transactions     = Array.isArray(remote.transactions) ? remote.transactions : [];
+    customCategories = (remote.customCategories && typeof remote.customCategories === 'object')
+      ? remote.customCategories : { income: [], expense: [] };
+
+    localStorage.setItem(STORAGE_KEY,     JSON.stringify(transactions));
+    localStorage.setItem(CUSTOM_CATS_KEY, JSON.stringify(customCategories));
+    localStorage.setItem('mamony_last_modified', String(remote.lastModified));
+    renderAll();
+    showToast('Data synced from another device.');
+  } catch { /* silent */ }
+}
+
+// ─── Apple Pay Inbox ─────────────────────────────────────────────────────────
+
+let inboxProcessing = false;
+
+async function processInbox() {
+  if (!syncKey || !FIREBASE_DB_URL || inboxProcessing) return;
+  inboxProcessing = true;
+  try {
+    const res = await fetch(`${FIREBASE_DB_URL}/mamony/${syncKey}/inbox.json`);
+    if (!res.ok) return;
+    const inbox = await res.json();
+    if (!inbox || typeof inbox !== 'object') return;
+
+    const entries = Object.entries(inbox);
+    if (entries.length === 0) return;
+
+    let added = 0;
+    const existingIds = new Set(transactions.map(t => t.id));
+    const idsToDelete = [];
+
+    for (const [inboxId, item] of entries) {
+      if (!item || !item.merchant || !item.amount) { idsToDelete.push(inboxId); continue; }
+
+      const amount = parseFloat(item.amount);
+      if (isNaN(amount) || amount <= 0) { idsToDelete.push(inboxId); continue; }
+
+      const txId = 'ap_' + inboxId;
+      if (existingIds.has(txId)) { idsToDelete.push(inboxId); continue; }
+
+      let currency = (item.currency || 'USD').toUpperCase();
+      if (!CURRENCIES[currency]) currency = 'USD';
+
+      const roundedAmount = CURRENCIES[currency].decimals === 0
+        ? Math.round(amount) : Math.round(amount * 100) / 100;
+
+      const txDate = item.ts
+        ? new Date(item.ts * 1000).toISOString().slice(0, 10)
+        : todayISO();
+
+      const tx = {
+        id:         txId,
+        type:       'expense',
+        amount:     roundedAmount,
+        currency,
+        savedRates: { ...liveRates },
+        category:   categorizeMerchant(item.merchant),
+        date:       txDate,
+        note:       item.merchant.slice(0, 80),
+        createdAt:  item.ts ? item.ts * 1000 : Date.now(),
+        source:     'apple_pay',
+      };
+
+      transactions.unshift(tx);
+      existingIds.add(txId);
+      idsToDelete.push(inboxId);
+      added++;
+    }
+
+    // Delete processed items from inbox
+    if (idsToDelete.length > 0) {
+      const deletions = {};
+      idsToDelete.forEach(id => { deletions[id] = null; });
+      await fetch(`${FIREBASE_DB_URL}/mamony/${syncKey}/inbox.json`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(deletions),
+      });
+    }
+
+    if (added > 0) {
+      saveTransactions();
+      renderAll();
+      showToast(`${added} Apple Pay transaction${added > 1 ? 's' : ''} added.`);
+    }
+  } catch (err) {
+    console.warn('Inbox processing failed:', err);
+  } finally {
+    inboxProcessing = false;
+  }
+}
+
+// ─── Sync Listener ───────────────────────────────────────────────────────────
+
 function startSyncListener() {
   if (!syncKey || !FIREBASE_DB_URL) return;
   stopSyncListener();
   syncEventSource = new EventSource(`${FIREBASE_DB_URL}/mamony/${syncKey}.json`);
   syncEventSource.addEventListener('put', handleRemoteData);
+  syncEventSource.addEventListener('patch', handleRemotePatch);
   syncEventSource.onerror = () => setSyncStatus('error');
   setSyncStatus('connected');
 }
@@ -1002,6 +1152,36 @@ function stopSyncListener() {
 function handleRemoteData(event) {
   if (isSyncing) return;
   let parsed; try { parsed = JSON.parse(event.data); } catch { return; }
+  const remote = parsed.data;
+  if (!remote || typeof remote.lastModified !== 'number') return;
+  const localModified = parseInt(localStorage.getItem('mamony_last_modified') || '0', 10);
+  if (remote.lastModified <= localModified) return;
+
+  transactions     = Array.isArray(remote.transactions) ? remote.transactions : [];
+  customCategories = (remote.customCategories && typeof remote.customCategories === 'object')
+    ? remote.customCategories : { income: [], expense: [] };
+
+  isSyncing = true;
+  localStorage.setItem(STORAGE_KEY,     JSON.stringify(transactions));
+  localStorage.setItem(CUSTOM_CATS_KEY, JSON.stringify(customCategories));
+  localStorage.setItem('mamony_last_modified', String(remote.lastModified));
+  isSyncing = false;
+
+  renderAll();
+  showToast('Data synced from another device.');
+}
+
+function handleRemotePatch(event) {
+  if (isSyncing) return;
+  let parsed; try { parsed = JSON.parse(event.data); } catch { return; }
+  const path = parsed.path || '';
+
+  if (path.startsWith('/inbox')) {
+    processInbox();
+    return;
+  }
+
+  // Root patch from another device's pushToCloud (now uses PATCH)
   const remote = parsed.data;
   if (!remote || typeof remote.lastModified !== 'number') return;
   const localModified = parseInt(localStorage.getItem('mamony_last_modified') || '0', 10);
@@ -1046,9 +1226,12 @@ function renderSyncModal() {
 function openSyncModal()  { renderSyncModal(); document.getElementById('syncModal').classList.remove('hidden'); }
 function closeSyncModal() { document.getElementById('syncModal').classList.add('hidden'); }
 
-function activateSync(key) {
+async function activateSync(key, isNewKey = false) {
   syncKey = key;
   saveSyncKey(key);
+  if (!isNewKey) {
+    await pullFromCloud();
+  }
   startSyncListener();
   pushToCloud();
   renderSyncModal();
@@ -1063,7 +1246,7 @@ function deactivateSync() {
 }
 
 function handleGenerateKey() {
-  activateSync(generateSyncKey());
+  activateSync(generateSyncKey(), true);
   showToast('Sync key generated. Syncing…');
   closeSyncModal();
 }
@@ -1086,6 +1269,29 @@ function handleCopyKey() {
   navigator.clipboard.writeText(syncKey)
     .then(() => showToast('Sync key copied.'))
     .catch(() => showToast('Copy failed — select key manually.'));
+}
+
+// ─── Apple Pay Guide ─────────────────────────────────────────────────────────
+
+function getInboxUrl() {
+  return `${FIREBASE_DB_URL}/mamony/${syncKey}/inbox/{txId}.json`;
+}
+
+function openApplePayGuide() {
+  const urlEl = document.getElementById('apInboxUrl');
+  if (urlEl) urlEl.textContent = getInboxUrl();
+  document.getElementById('apGuideModal').classList.remove('hidden');
+}
+
+function closeApplePayGuide() {
+  document.getElementById('apGuideModal').classList.add('hidden');
+}
+
+function copyInboxUrl() {
+  if (!syncKey) return;
+  navigator.clipboard.writeText(getInboxUrl())
+    .then(() => showToast('Inbox URL copied.'))
+    .catch(() => showToast('Copy failed — select URL manually.'));
 }
 
 // ─── Daily Backup ─────────────────────────────────────────────────────────────
@@ -1179,7 +1385,7 @@ function init() {
 
   // Keyboard: Escape closes any open modal
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') { closeDeleteModal(); closeCatModal(); closeSyncModal(); }
+    if (e.key === 'Escape') { closeDeleteModal(); closeCatModal(); closeSyncModal(); closeApplePayGuide(); }
   });
 
   // Export / Import
@@ -1260,12 +1466,31 @@ function init() {
     if (e.key === 'Enter') { e.preventDefault(); handleUseSyncKey(); }
   });
 
+  // Apple Pay guide modal
+  document.getElementById('btnApplePayGuide').addEventListener('click', openApplePayGuide);
+  document.getElementById('apGuideClose').addEventListener('click', closeApplePayGuide);
+  document.getElementById('apGuideModal').addEventListener('click', e => {
+    if (e.target === document.getElementById('apGuideModal')) closeApplePayGuide();
+  });
+  document.getElementById('btnCopyInboxUrl').addEventListener('click', copyInboxUrl);
+
   // Bootstrap sync if key was saved in a previous session
   syncKey = loadSyncKey();
   if (syncKey && FIREBASE_DB_URL) {
+    pullFromCloud();
     startSyncListener();
     scheduleDailyBackup();
+    processInbox();
   }
+
+  // Reconnect and re-pull when app returns from background
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && syncKey && FIREBASE_DB_URL) {
+      pullFromCloud();
+      startSyncListener();
+      processInbox();
+    }
+  });
 }
 
 document.addEventListener('DOMContentLoaded', init);
