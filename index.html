@@ -411,42 +411,52 @@
       </div>
 
       <div class="text-xs" style="color:var(--text-3);line-height:1.6">
-        <p class="font-semibold mb-1">1. Open Shortcuts on your iPhone</p>
-        <p class="mb-3">Go to <strong>Automation</strong> tab &rarr; <strong>+</strong> &rarr; <strong>Transaction</strong>.</p>
 
-        <p class="font-semibold mb-1">2. Add these actions in order:</p>
-        <ol style="padding-left:1.2rem;margin-bottom:0.75rem">
-          <li class="mb-1"><strong>Format Date</strong> &mdash; Current Date as custom: <code>yyyyMMddHHmmss</code>. Save to variable <code>txId</code>.</li>
-          <li class="mb-1"><strong>Dictionary</strong> with 4 keys:
-            <ul style="padding-left:1rem;margin-top:2px">
-              <li><code>merchant</code> &rarr; <em>Merchant</em> (magic variable)</li>
-              <li><code>amount</code> &rarr; <em>Amount</em> (magic variable, as Number)</li>
-              <li><code>currency</code> &rarr; <em>Currency Code</em> (magic variable)</li>
-              <li><code>ts</code> &rarr; <em>Current Date</em> (as Unix Timestamp)</li>
-            </ul>
-          </li>
-          <li class="mb-1"><strong>Get Contents of URL</strong>:
-            <ul style="padding-left:1rem;margin-top:2px">
-              <li>URL: <span id="apInboxUrl" class="sync-key-text" style="word-break:break-all;font-size:0.65rem"></span></li>
-              <li>Method: <strong>PUT</strong></li>
-              <li>Request Body: <strong>JSON</strong> &rarr; the Dictionary</li>
-            </ul>
-          </li>
-        </ol>
-
-        <p class="font-semibold mb-1">3. Copy your inbox URL</p>
-        <p class="mb-2">Paste this as the URL in the shortcut (replace <code>{txId}</code> with the Format Date variable):</p>
+        <p class="font-semibold mb-1">Paso 1: Copi&aacute; tu URL</p>
+        <p class="mb-1">Esta es tu URL personal para recibir transacciones:</p>
+        <p id="apInboxUrl" class="sync-key-text mb-2" style="word-break:break-all;font-size:0.65rem;padding:6px;background:var(--bg-input);border-radius:6px"></p>
         <button id="btnCopyInboxUrl" class="btn-secondary text-xs px-3 py-1.5 w-full mb-3" type="button">
-          <i class="fa-regular fa-copy text-xs mr-1.5"></i>Copy Inbox URL
+          <i class="fa-regular fa-copy text-xs mr-1.5"></i>Copiar URL
         </button>
 
-        <p class="font-semibold mb-1">4. Done!</p>
-        <p>Every Apple Pay transaction will appear in MaMony automatically, categorized by merchant name.</p>
+        <div class="cat-divider"></div>
+
+        <p class="font-semibold mb-1">Paso 2: Cre&aacute; la automatizaci&oacute;n en tu iPhone</p>
+        <ol style="padding-left:1.2rem;margin-bottom:0.75rem">
+          <li class="mb-2">Abr&iacute; la app <strong>Atajos</strong></li>
+          <li class="mb-2">And&aacute; a <strong>Automatizaci&oacute;n</strong> &rarr; toc&aacute; <strong>+</strong></li>
+          <li class="mb-2">Eleg&iacute; <strong>Wallet</strong> (o Transacci&oacute;n)</li>
+          <li class="mb-2">Seleccion&aacute; <strong>Ejecutar inmediatamente</strong></li>
+          <li class="mb-2">
+            Busc&aacute; la acci&oacute;n <strong>&ldquo;Obtener contenido de URL&rdquo;</strong> y agreg&aacute;la
+          </li>
+          <li class="mb-2">
+            En la URL, peg&aacute; la URL que copiaste arriba
+          </li>
+          <li class="mb-2">
+            Cambi&aacute; el m&eacute;todo a <strong>POST</strong>
+          </li>
+          <li class="mb-2">
+            En <strong>Cuerpo de solicitud</strong>, eleg&iacute; <strong>JSON</strong> y agreg&aacute; estas 4 claves:
+            <div style="margin-top:6px;padding:8px;background:var(--bg-input);border-radius:6px">
+              <div class="mb-1"><code>merchant</code> &rarr; toc&aacute; el valor, eleg&iacute; <em>Variable del atajo</em> &rarr; <strong>Comerciante</strong></div>
+              <div class="mb-1"><code>amount</code> &rarr; <em>Variable del atajo</em> &rarr; <strong>Importe</strong></div>
+              <div class="mb-1"><code>currency</code> &rarr; <em>Variable del atajo</em> &rarr; <strong>C&oacute;digo de divisa</strong></div>
+              <div><code>ts</code> &rarr; <em>Variable del atajo</em> &rarr; <strong>Fecha actual</strong> (como Unix)</div>
+            </div>
+          </li>
+          <li class="mb-1">Toc&aacute; <strong>OK</strong> y listo</li>
+        </ol>
+
+        <div class="cat-divider"></div>
+
+        <p class="font-semibold mb-1">Listo!</p>
+        <p>Cada pago con Apple Pay se va a registrar autom&aacute;ticamente en MaMony, categorizado por el nombre del comercio.</p>
       </div>
 
     </div>
   </div>
 
-  <script src="app.js?v=9"></script>
+  <script src="app.js?v=10"></script>
 </body>
 </html>
