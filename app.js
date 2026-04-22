@@ -1281,7 +1281,7 @@ function handleCopyKey() {
 // ─── Apple Pay Guide ─────────────────────────────────────────────────────────
 
 function getInboxUrl() {
-  return `https://yaguare7e.github.io/mamony/add.html?key=${syncKey}`;
+  return `${FIREBASE_DB_URL}/mamony/${syncKey}/inbox.json`;
 }
 
 function openApplePayGuide() {

@@ -423,18 +423,28 @@
             Toc&aacute; <strong>Create New Shortcut</strong>
           </li>
           <li class="mb-2">
-            Busc&aacute; <strong>&ldquo;Open URL&rdquo;</strong> (o &ldquo;Abrir URL&rdquo;) y agreg&aacute;la
+            Busc&aacute; <strong>&ldquo;Get Contents of URL&rdquo;</strong> (o &ldquo;Obtener contenido de URL&rdquo;) y agreg&aacute;la
           </li>
           <li class="mb-2">
             En el campo de URL, peg&aacute; esta URL:
             <div id="apInboxUrl" style="word-break:break-all;font-size:0.65rem;padding:8px;background:var(--bg-input);border-radius:6px;margin-top:4px;font-family:monospace"></div>
           </li>
           <li class="mb-2">
-            Ahora necesit&aacute;s agregar los datos de la transacci&oacute;n al final de la URL. Toc&aacute; al final del texto y agreg&aacute;:
-            <div style="margin-top:6px;padding:8px;background:var(--bg-input);border-radius:6px;font-family:monospace;font-size:0.65rem">
-              <div class="mb-1">&amp;a=<span style="color:#4ade80">[Importe]</span>&amp;m=<span style="color:#4ade80">[Comerciante]</span></div>
+            Toc&aacute; <strong>&ldquo;Show More&rdquo;</strong> y configur&aacute;:
+            <ul style="padding-left:1rem;margin-top:4px;list-style:disc">
+              <li class="mb-1"><strong>Method</strong>: <code style="background:var(--bg-input);padding:1px 4px;border-radius:3px">POST</code></li>
+              <li class="mb-1"><strong>Headers</strong>: agreg&aacute; uno &rarr; Key: <code style="background:var(--bg-input);padding:1px 4px;border-radius:3px">Content-Type</code> &rarr; Value: <code style="background:var(--bg-input);padding:1px 4px;border-radius:3px">application/json</code></li>
+              <li class="mb-1"><strong>Request Body</strong>: seleccion&aacute; <code style="background:var(--bg-input);padding:1px 4px;border-radius:3px">JSON</code></li>
+            </ul>
+          </li>
+          <li class="mb-2">
+            En el cuerpo JSON, agreg&aacute; estos campos:
+            <div style="margin-top:6px;padding:8px;background:var(--bg-input);border-radius:6px;font-family:monospace;font-size:0.65rem;line-height:1.8">
+              <div><strong>merchant</strong> &rarr; <span style="color:#4ade80">[Comerciante]</span></div>
+              <div><strong>amount</strong> &rarr; <span style="color:#4ade80">[Importe]</span></div>
+              <div><strong>currency</strong> &rarr; USD</div>
             </div>
-            <div style="color:var(--text-4);margin-top:4px">Para insertar <span style="color:#4ade80">[Importe]</span>: toc&aacute; ah&iacute;, luego toc&aacute; la variable <strong>Amount</strong> que aparece arriba del teclado. Igual con <strong>Merchant</strong> para <span style="color:#4ade80">[Comerciante]</span>.</div>
+            <div style="color:var(--text-4);margin-top:4px">Para <span style="color:#4ade80">[Comerciante]</span>: toc&aacute; el valor, luego seleccion&aacute; la variable <strong>Merchant</strong>. Para <span style="color:#4ade80">[Importe]</span>: seleccion&aacute; <strong>Amount</strong>.</div>
           </li>
           <li class="mb-1">Toc&aacute; <strong>OK</strong> y listo</li>
         </ol>
@@ -445,12 +455,12 @@
 
         <div class="cat-divider"></div>
 
-        <p style="color:var(--text-4)">Cada pago con Apple Pay abrir&aacute; Safari brevemente para guardar la transacci&oacute;n autom&aacute;ticamente en MaMony.</p>
+        <p style="color:var(--text-4)">Cada pago con Apple Pay guardar&aacute; la transacci&oacute;n autom&aacute;ticamente en MaMony, en segundo plano y sin abrir el navegador.</p>
       </div>
 
     </div>
   </div>
 
-  <script src="app.js?v=11"></script>
+  <script src="app.js?v=12"></script>
 </body>
 </html>
