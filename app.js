@@ -1010,6 +1010,13 @@ function schedulePush() {
 
 async function pushToCloud() {
   if (!syncKey || !FIREBASE_DB_URL) return;
+  // Guard: never overwrite cloud data with empty local state
+  if (transactions.length === 0) {
+    const localModified = parseInt(localStorage.getItem('mamony_last_modified') || '0', 10);
+    if (localModified === 0) return;                // fresh device, no data yet — skip
+    const res = await fetch(`${FIREBASE_DB_URL}/mamony/${syncKey}/transactions.json?shallow=true`);
+    if (res.ok) { const r = await res.json(); if (r) return; }  // cloud has data — don't wipe it
+  }
   isSyncing = true;
   setSyncStatus('syncing');
   const payload = { transactions, customCategories, lastModified: Date.now() };
