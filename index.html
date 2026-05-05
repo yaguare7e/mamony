@@ -333,9 +333,19 @@
     </div>
   </div>
 
-  <!-- Sync server URL — configured via the sync settings modal -->
+  <!-- Sync server URL — auto-detected when served from local/Tailscale host -->
   <script>
-    window.FIREBASE_DB_URL = localStorage.getItem('mamony_server_url') || '';
+    (function () {
+      var saved = localStorage.getItem('mamony_server_url');
+      if (saved) { window.FIREBASE_DB_URL = saved; return; }
+      var h = window.location.hostname;
+      var isLocal = h === 'localhost'
+        || h.endsWith('.local')
+        || /^10\./.test(h)
+        || /^192\.168\./.test(h)
+        || /^100\./.test(h);   // Tailscale range
+      window.FIREBASE_DB_URL = isLocal ? window.location.origin : '';
+    }());
   </script>
 
   <!-- Sync Modal -->
