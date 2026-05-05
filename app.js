@@ -1217,7 +1217,6 @@ function renderSyncModal() {
   const hasSyncKey = !!syncKey;
   document.getElementById('syncSetupSection').classList.toggle('hidden', hasSyncKey);
   document.getElementById('syncActiveSection').classList.toggle('hidden', !hasSyncKey);
-  document.getElementById('serverUrlInput').value = localStorage.getItem('mamony_server_url') || '';
   if (hasSyncKey) {
     document.getElementById('syncKeyDisplay').textContent =
       syncKey.slice(0, 8) + '••••••••••••••••••••' + syncKey.slice(-4);
@@ -1475,13 +1474,6 @@ function init() {
   });
 
   // Apple Pay guide modal
-  document.getElementById('btnSaveServerUrl').addEventListener('click', () => {
-    const url = document.getElementById('serverUrlInput').value.trim().replace(/\/$/, '');
-    if (url) localStorage.setItem('mamony_server_url', url);
-    else localStorage.removeItem('mamony_server_url');
-    location.reload();
-  });
-
   document.getElementById('btnApplePayGuide').addEventListener('click', openApplePayGuide);
   document.getElementById('apGuideClose').addEventListener('click', closeApplePayGuide);
   document.getElementById('apGuideModal').addEventListener('click', e => {

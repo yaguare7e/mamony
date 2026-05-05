@@ -333,19 +333,9 @@
     </div>
   </div>
 
-  <!-- Sync server URL — auto-detected when served from local/Tailscale host -->
+  <!-- Sync config — set your Firebase Realtime Database URL here after setup -->
   <script>
-    (function () {
-      var saved = localStorage.getItem('mamony_server_url');
-      if (saved) { window.FIREBASE_DB_URL = saved; return; }
-      var h = window.location.hostname;
-      var isLocal = h === 'localhost'
-        || h.endsWith('.local')
-        || /^10\./.test(h)
-        || /^192\.168\./.test(h)
-        || /^100\./.test(h);   // Tailscale range
-      window.FIREBASE_DB_URL = isLocal ? window.location.origin : '';
-    }());
+    window.FIREBASE_DB_URL = 'https://mamony-54963-default-rtdb.firebaseio.com';
   </script>
 
   <!-- Sync Modal -->
@@ -357,19 +347,6 @@
         <button id="syncModalClose" class="tx-delete" aria-label="Close">
           <i class="fa-solid fa-xmark text-xs pointer-events-none"></i>
         </button>
-      </div>
-
-      <div class="mb-4">
-        <p class="form-label mb-1">Server URL</p>
-        <p class="text-xs text-gray-500 dark:text-slate-400 mb-2">
-          URL of your local Tissot server (e.g. <code class="bg-gray-100 dark:bg-slate-700 px-1 rounded">http://tissot.local:8000</code>).
-        </p>
-        <input id="serverUrlInput" type="url" placeholder="http://tissot.local:8000"
-          class="form-input mb-2" autocomplete="off" spellcheck="false" />
-        <button id="btnSaveServerUrl" class="btn-secondary text-xs px-3 py-1.5 w-full" type="button">
-          <i class="fa-solid fa-server text-xs mr-1.5"></i>Save &amp; Reload
-        </button>
-        <div class="cat-divider mt-4"></div>
       </div>
 
       <div id="syncSetupSection">
