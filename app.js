@@ -1455,7 +1455,8 @@ async function pullFromCloud() {
     const remote = await res.json();
     if (!remote || typeof remote.lastModified !== 'number') return;
     const localModified = parseInt(localStorage.getItem('mamony_last_modified') || '0', 10);
-    if (remote.lastModified <= localModified) return;
+    const localEmpty = transactions.length === 0 && fixedExpenses.length === 0;
+    if (!localEmpty && remote.lastModified <= localModified) return;
 
     transactions     = Array.isArray(remote.transactions) ? remote.transactions : [];
     customCategories = (remote.customCategories && typeof remote.customCategories === 'object')
