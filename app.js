@@ -1455,9 +1455,9 @@ async function pullFromCloud() {
     const remote = await res.json();
     if (!remote || typeof remote.lastModified !== 'number') return;
     const localModified = parseInt(localStorage.getItem('mamony_last_modified') || '0', 10);
-    const localEmpty = transactions.length === 0 && fixedExpenses.length === 0;
-    if (!localEmpty && remote.lastModified <= localModified) return;
 
+    // Always apply Firebase data at startup — pushToCloud doesn't update
+    // mamony_last_modified locally, so the timestamp comparison is unreliable.
     transactions     = Array.isArray(remote.transactions) ? remote.transactions : [];
     customCategories = (remote.customCategories && typeof remote.customCategories === 'object')
       ? remote.customCategories : { income: [], expense: [] };
@@ -1468,7 +1468,7 @@ async function pullFromCloud() {
     localStorage.setItem(FE_STORAGE_KEY,  JSON.stringify(fixedExpenses));
     localStorage.setItem('mamony_last_modified', String(remote.lastModified));
     renderAll();
-    showToast('Data synced from another device.');
+    if (remote.lastModified > localModified) showToast('Data synced from cloud.');
   } catch { /* silent */ }
 }
 
