@@ -684,6 +684,10 @@ function renderFeChart() {
     chartWrap.classList.add('hidden');
     legendEl.innerHTML  = '';
     centerEl.innerHTML  = '';
+    const allPaused = fixedExpenses.length > 0 && fixedExpenses.every(fe => !fe.active);
+    chartEmpty.innerHTML = allPaused
+      ? '<i class="fa-regular fa-circle-pause text-2xl block mb-2"></i>Todos los gastos fijos están en pausa.'
+      : '<i class="fa-regular fa-chart-pie text-2xl block mb-2"></i>Agregá gastos fijos para ver el gráfico.';
     chartEmpty.classList.remove('hidden');
     if (feChartInstance) { feChartInstance.destroy(); feChartInstance = null; }
     return;
@@ -830,13 +834,13 @@ function createFeElement(fe) {
         <div class="tx-cat-date"><span>${escapeHtml(meta.label)}</span></div>
       </div>
       <div class="${amtClass}">${formatAmount(fe.amount, fe.currency)}</div>
-      <button class="tx-delete fe-pause-btn" data-fe-id="${fe.id}" aria-label="${pauseTitle}" title="${pauseTitle}">
+      <button type="button" class="tx-delete fe-pause-btn" data-fe-id="${fe.id}" aria-label="${pauseTitle}" title="${pauseTitle}">
         <i class="fa-solid ${pauseIcon} text-xs pointer-events-none"></i>
       </button>
-      <button class="tx-delete fe-edit-btn" data-fe-id="${fe.id}" aria-label="Editar" title="Editar">
+      <button type="button" class="tx-delete fe-edit-btn" data-fe-id="${fe.id}" aria-label="Editar" title="Editar">
         <i class="fa-solid fa-pen text-xs pointer-events-none"></i>
       </button>
-      <button class="tx-delete fe-del-btn" data-fe-id="${fe.id}" aria-label="Eliminar" title="Eliminar">
+      <button type="button" class="tx-delete fe-del-btn" data-fe-id="${fe.id}" aria-label="Eliminar" title="Eliminar">
         <i class="fa-solid fa-xmark text-xs pointer-events-none"></i>
       </button>
     </div>
