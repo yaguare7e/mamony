@@ -91,6 +91,7 @@ let feCollapsed       = false;
 let fePendingDeleteId = null;
 let feEditingId       = null;
 let feModalCurrency   = 'PYG';
+let feChartInstance   = null;
 
 // ─── Sync State ───────────────────────────────────────────────────────────────
 
@@ -656,6 +657,117 @@ function escapeHtml(str) {
 
 // ─── Fixed Expenses ───────────────────────────────────────────────────────────
 
+function buildFeChartData() {
+  const totals = {};
+  fixedExpenses.filter(fe => fe.active).forEach(fe => {
+    const base = convertTo(fe.amount, fe.currency, baseCurrency, liveRates);
+    totals[fe.category] = (totals[fe.category] || 0) + base;
+  });
+  return Object.entries(totals)
+    .map(([id, amount]) => ({ id, amount, meta: getCatMeta(id) }))
+    .sort((a, b) => b.amount - a.amount);
+}
+
+function renderFeChart() {
+  if (typeof Chart === 'undefined') return;
+
+  const canvas    = document.getElementById('feChartCanvas');
+  const chartWrap = document.getElementById('feChartWrap');
+  const chartEmpty= document.getElementById('feChartEmpty');
+  const legendEl  = document.getElementById('feChartLegend');
+  const centerEl  = document.getElementById('feChartCenter');
+  if (!canvas) return;
+
+  const sorted = buildFeChartData();
+
+  if (sorted.length === 0) {
+    chartWrap.classList.add('hidden');
+    legendEl.innerHTML  = '';
+    centerEl.innerHTML  = '';
+    chartEmpty.classList.remove('hidden');
+    if (feChartInstance) { feChartInstance.destroy(); feChartInstance = null; }
+    return;
+  }
+
+  chartWrap.classList.remove('hidden');
+  chartEmpty.classList.add('hidden');
+
+  const labels = sorted.map(d => d.meta.label);
+  const data   = sorted.map(d => d.amount);
+  const colors = CHART_PALETTE.slice(0, data.length);
+  const total  = data.reduce((s, v) => s + v, 0);
+
+  const mixed  = fixedExpensesHasMixedCurrencies();
+  const prefix = mixed ? '≈ ' : '';
+
+  centerEl.innerHTML = `
+    <span class="chart-center-label">Fijos</span>
+    <span class="chart-center-value">${prefix}${formatCurrency(total)}</span>
+  `;
+
+  if (feChartInstance) { feChartInstance.destroy(); feChartInstance = null; }
+
+  const dark = isDark();
+
+  feChartInstance = new Chart(canvas, {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{
+        data,
+        backgroundColor: colors,
+        borderColor:  dark ? '#1e293b' : '#ffffff',
+        borderWidth:  3,
+        hoverOffset:  10,
+        hoverBorderWidth: 3,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      cutout: '68%',
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: dark ? '#334155' : '#111827',
+          titleColor:      dark ? '#f1f5f9' : '#ffffff',
+          bodyColor:       dark ? '#f1f5f9' : '#ffffff',
+          borderColor:     dark ? '#475569' : 'transparent',
+          borderWidth:     dark ? 1 : 0,
+          callbacks: {
+            label: (ctx) => {
+              const val = ctx.raw;
+              const pct = ((val / total) * 100).toFixed(1);
+              return `  ${prefix}${formatCurrency(val)}  (${pct}%)`;
+            },
+          },
+          bodyFont: { family: 'Inter, system-ui, sans-serif', size: 12 },
+          padding: 10,
+          cornerRadius: 8,
+        },
+      },
+      animation: { animateRotate: true, animateScale: false, duration: 400 },
+    },
+  });
+
+  legendEl.innerHTML = '';
+  const frag = document.createDocumentFragment();
+  sorted.forEach((d, i) => {
+    const pct = ((d.amount / total) * 100).toFixed(1);
+    const row = document.createElement('div');
+    row.className = 'chart-legend-row';
+    row.innerHTML = `
+      <span class="chart-legend-dot" style="background:${colors[i]}"></span>
+      <span class="chart-legend-icon"><i class="fa-solid ${d.meta.icon}"></i></span>
+      <span class="chart-legend-label">${escapeHtml(d.meta.label)}</span>
+      <span class="chart-legend-pct">${pct}%</span>
+      <span class="chart-legend-amount">${prefix}${formatCurrency(d.amount)}</span>
+    `;
+    frag.appendChild(row);
+  });
+  legendEl.appendChild(frag);
+}
+
 function renderFixedExpenses() {
   const total  = computeFixedExpensesTotal();
   const mixed  = fixedExpensesHasMixedCurrencies();
@@ -678,6 +790,7 @@ function renderFixedExpenses() {
 
   if (fixedExpenses.length === 0) {
     empty.classList.remove('hidden');
+    renderFeChart();
     return;
   }
   empty.classList.add('hidden');
@@ -685,6 +798,7 @@ function renderFixedExpenses() {
   const frag = document.createDocumentFragment();
   fixedExpenses.forEach(fe => frag.appendChild(createFeElement(fe)));
   list.appendChild(frag);
+  renderFeChart();
 }
 
 function buildFeConversions(fe) {
@@ -1732,7 +1846,7 @@ function init() {
   document.getElementById('chartModeIncome').addEventListener('click',  () => setChartMode('income'));
 
   // Re-render chart when OS theme changes so tooltip/border colors update
-  darkMQ.addEventListener('change', renderChart);
+  darkMQ.addEventListener('change', () => { renderChart(); renderFeChart(); });
 
   // Currency toggle (transaction form)
   document.querySelectorAll('.curr-btn').forEach(btn =>
