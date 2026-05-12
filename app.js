@@ -7,7 +7,8 @@
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const STORAGE_KEY = 'mamony_transactions';
+const STORAGE_KEY    = 'mamony_transactions';
+const FE_STORAGE_KEY = 'mamony_fixed_expenses';
 
 const CATEGORIES = {
   income: [
@@ -84,6 +85,12 @@ let selectedIcon      = PICKABLE_ICONS[0];
 let liveRates         = { ...DEFAULT_RATES };
 let currentCurrency   = 'PYG';
 let baseCurrency      = 'PYG';
+
+let fixedExpenses     = [];
+let feCollapsed       = false;
+let fePendingDeleteId = null;
+let feEditingId       = null;
+let feModalCurrency   = 'PYG';
 
 // ─── Sync State ───────────────────────────────────────────────────────────────
 
@@ -260,6 +267,31 @@ function saveCustomCategories() {
   schedulePush();
 }
 
+function loadFixedExpenses() {
+  try {
+    const raw = localStorage.getItem(FE_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(fe =>
+      fe &&
+      typeof fe.id === 'string' &&
+      typeof fe.name === 'string' && fe.name.length > 0 &&
+      typeof fe.amount === 'number' && fe.amount > 0 &&
+      typeof fe.currency === 'string' && CURRENCIES[fe.currency] &&
+      typeof fe.category === 'string' &&
+      typeof fe.active === 'boolean' &&
+      typeof fe.createdAt === 'number'
+    );
+  } catch {
+    return [];
+  }
+}
+
+function saveFixedExpenses() {
+  localStorage.setItem(FE_STORAGE_KEY, JSON.stringify(fixedExpenses));
+  schedulePush();
+}
+
 // ─── Rates ────────────────────────────────────────────────────────────────────
 
 function loadRates() {
@@ -326,6 +358,16 @@ function computeSummary(txList) {
 
 function hasMixedCurrencies(txList) {
   return txList.some(t => (t.currency || 'USD') !== baseCurrency);
+}
+
+function computeFixedExpensesTotal() {
+  return fixedExpenses
+    .filter(fe => fe.active)
+    .reduce((sum, fe) => sum + convertTo(fe.amount, fe.currency, baseCurrency, liveRates), 0);
+}
+
+function fixedExpensesHasMixedCurrencies() {
+  return fixedExpenses.some(fe => fe.active && fe.currency !== baseCurrency);
 }
 
 // ─── Chart ────────────────────────────────────────────────────────────────────
@@ -458,6 +500,7 @@ function renderAll() {
   renderCategoryFilters();
   renderTransactions();
   renderChart();
+  renderFixedExpenses();
 }
 
 function renderMonthLabel() {
@@ -611,6 +654,222 @@ function escapeHtml(str) {
     .replace(/'/g, '&#39;');
 }
 
+// ─── Fixed Expenses ───────────────────────────────────────────────────────────
+
+function renderFixedExpenses() {
+  const total  = computeFixedExpensesTotal();
+  const mixed  = fixedExpensesHasMixedCurrencies();
+  const prefix = mixed ? '≈ ' : '';
+
+  const totalLabel = document.getElementById('feTotalLabel');
+  if (totalLabel) totalLabel.textContent = prefix + formatCurrency(total);
+
+  const chevron = document.getElementById('feChevron');
+  if (chevron) chevron.style.transform = feCollapsed ? '' : 'rotate(180deg)';
+
+  const body = document.getElementById('feBody');
+  if (!body) return;
+  body.classList.toggle('hidden', feCollapsed);
+  if (feCollapsed) return;
+
+  const list  = document.getElementById('feList');
+  const empty = document.getElementById('feEmpty');
+  list.innerHTML = '';
+
+  if (fixedExpenses.length === 0) {
+    empty.classList.remove('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+
+  const frag = document.createDocumentFragment();
+  fixedExpenses.forEach(fe => frag.appendChild(createFeElement(fe)));
+  list.appendChild(frag);
+}
+
+function buildFeConversions(fe) {
+  const from   = fe.currency;
+  const others = Object.keys(CURRENCIES).filter(c => c !== from);
+  return others.map(to => {
+    const converted = convertTo(fe.amount, from, to, liveRates);
+    return `<span class="tx-conv-item">${formatAmount(converted, to)}</span>`;
+  }).join('<span class="tx-conv-sep">·</span>');
+}
+
+function createFeElement(fe) {
+  const meta = getCatMeta(fe.category);
+  const div  = document.createElement('div');
+  div.className = 'tx-item fe-item' + (fe.active ? '' : ' fe-paused');
+  div.dataset.feId = fe.id;
+
+  const amtClass = 'tx-amount expense' + (fe.active ? '' : ' fe-strikethrough');
+  const pauseIcon  = fe.active ? 'fa-pause' : 'fa-play';
+  const pauseTitle = fe.active ? 'Pausar' : 'Reanudar';
+
+  div.innerHTML = `
+    <div class="tx-row">
+      <div class="tx-icon expense">
+        <i class="fa-solid ${meta.icon}"></i>
+      </div>
+      <div class="tx-meta">
+        <div class="tx-note">${escapeHtml(fe.name)}</div>
+        <div class="tx-cat-date"><span>${escapeHtml(meta.label)}</span></div>
+      </div>
+      <div class="${amtClass}">${formatAmount(fe.amount, fe.currency)}</div>
+      <button class="tx-delete fe-pause-btn" data-fe-id="${fe.id}" aria-label="${pauseTitle}" title="${pauseTitle}">
+        <i class="fa-solid ${pauseIcon} text-xs pointer-events-none"></i>
+      </button>
+      <button class="tx-delete fe-edit-btn" data-fe-id="${fe.id}" aria-label="Editar" title="Editar">
+        <i class="fa-solid fa-pen text-xs pointer-events-none"></i>
+      </button>
+      <button class="tx-delete fe-del-btn" data-fe-id="${fe.id}" aria-label="Eliminar" title="Eliminar">
+        <i class="fa-solid fa-xmark text-xs pointer-events-none"></i>
+      </button>
+    </div>
+    <div class="tx-conversions fe-conversions hidden">
+      <i class="fa-solid fa-right-left tx-conv-icon"></i>
+      ${buildFeConversions(fe)}
+    </div>
+  `;
+  return div;
+}
+
+function toggleFeCollapse() {
+  feCollapsed = !feCollapsed;
+  renderFixedExpenses();
+}
+
+function toggleFeExpand(item) {
+  const isOpen = item.classList.contains('tx-expanded');
+  document.querySelectorAll('.fe-item.tx-expanded').forEach(el => {
+    el.classList.remove('tx-expanded');
+    el.querySelector('.fe-conversions')?.classList.add('hidden');
+  });
+  if (!isOpen) {
+    item.classList.add('tx-expanded');
+    item.querySelector('.fe-conversions')?.classList.remove('hidden');
+  }
+}
+
+function toggleFePause(id) {
+  const fe = fixedExpenses.find(f => f.id === id);
+  if (!fe) return;
+  fe.active = !fe.active;
+  saveFixedExpenses();
+  renderFixedExpenses();
+  showToast(fe.active ? 'Gasto fijo activado.' : 'Gasto fijo pausado.');
+}
+
+function openFeDeleteModal(id) {
+  fePendingDeleteId = id;
+  document.getElementById('modalTitle').textContent = '¿Eliminar gasto fijo?';
+  document.getElementById('deleteModal').classList.remove('hidden');
+}
+
+function closeFeModal() {
+  feEditingId = null;
+  document.getElementById('feModal').classList.add('hidden');
+}
+
+function populateFeCategory() {
+  const sel = document.getElementById('feCategory');
+  if (!sel) return;
+  sel.innerHTML = '';
+  getCatsForType('expense').forEach(cat => {
+    sel.add(new Option(cat.label, cat.id));
+  });
+}
+
+function setFeModalCurrency(currency) {
+  feModalCurrency = currency;
+  document.querySelectorAll('#feModal .fe-curr-btn').forEach(b => {
+    b.classList.remove('active-usd', 'active-pyg', 'active-ars');
+    if (b.dataset.currency === currency) b.classList.add(`active-${currency.toLowerCase()}`);
+  });
+  const inp = document.getElementById('feAmount');
+  if (!inp) return;
+  if (currency === 'USD') { inp.step = '0.01'; inp.placeholder = '0.00'; }
+  else                    { inp.step = '1';    inp.placeholder = '0'; }
+}
+
+function openFeModal(id = null) {
+  feEditingId = id;
+  const modal = document.getElementById('feModal');
+  modal.classList.remove('hidden');
+  populateFeCategory();
+
+  if (id) {
+    const fe = fixedExpenses.find(f => f.id === id);
+    if (!fe) return;
+    document.getElementById('feModalTitle').textContent = 'Editar gasto fijo';
+    document.getElementById('feName').value   = fe.name;
+    document.getElementById('feAmount').value = fe.amount;
+    document.getElementById('feCategory').value = fe.category;
+    setFeModalCurrency(fe.currency);
+  } else {
+    document.getElementById('feModalTitle').textContent = 'Agregar gasto fijo';
+    document.getElementById('feName').value   = '';
+    document.getElementById('feAmount').value = '';
+    setFeModalCurrency('PYG');
+    const sel = document.getElementById('feCategory');
+    if (sel.options.length > 0) sel.selectedIndex = 0;
+  }
+  document.getElementById('feFormError').classList.add('hidden');
+  document.getElementById('feName').focus();
+}
+
+function handleFeFormSubmit(e) {
+  e.preventDefault();
+  const name      = document.getElementById('feName').value.trim();
+  const amountRaw = document.getElementById('feAmount').value.trim();
+  const category  = document.getElementById('feCategory').value;
+  const errorEl   = document.getElementById('feFormError');
+
+  if (!name) {
+    errorEl.textContent = 'Por favor ingresá un nombre.';
+    errorEl.classList.remove('hidden');
+    document.getElementById('feName').focus();
+    return;
+  }
+
+  const amount = parseFloat(amountRaw);
+  if (!amountRaw || isNaN(amount) || amount <= 0) {
+    errorEl.textContent = 'Ingresá un monto válido.';
+    errorEl.classList.remove('hidden');
+    document.getElementById('feAmount').focus();
+    return;
+  }
+
+  const roundedAmount = CURRENCIES[feModalCurrency].decimals === 0
+    ? Math.round(amount)
+    : Math.round(amount * 100) / 100;
+
+  if (feEditingId) {
+    const fe = fixedExpenses.find(f => f.id === feEditingId);
+    if (fe) {
+      fe.name     = name.slice(0, 60);
+      fe.amount   = roundedAmount;
+      fe.currency = feModalCurrency;
+      fe.category = category;
+    }
+  } else {
+    fixedExpenses.push({
+      id:        generateId(),
+      name:      name.slice(0, 60),
+      amount:    roundedAmount,
+      currency:  feModalCurrency,
+      category,
+      active:    true,
+      createdAt: Date.now(),
+    });
+  }
+
+  saveFixedExpenses();
+  closeFeModal();
+  renderFixedExpenses();
+  showToast(feEditingId ? 'Gasto fijo actualizado.' : 'Gasto fijo agregado.');
+}
+
 // ─── Category Select ──────────────────────────────────────────────────────────
 
 function populateCategorySelect(type) {
@@ -663,6 +922,7 @@ function setBaseCurrency(currency) {
   localStorage.setItem(BASE_CURR_KEY, currency);
   renderSummary();
   renderChart();
+  renderFixedExpenses();
 }
 
 // ─── Form ─────────────────────────────────────────────────────────────────────
@@ -743,11 +1003,21 @@ function openDeleteModal(id) {
 }
 
 function closeDeleteModal() {
-  pendingDeleteId = null;
+  pendingDeleteId   = null;
+  fePendingDeleteId = null;
+  document.getElementById('modalTitle').textContent = 'Delete transaction?';
   document.getElementById('deleteModal').classList.add('hidden');
 }
 
 function confirmDelete() {
+  if (fePendingDeleteId) {
+    fixedExpenses = fixedExpenses.filter(fe => fe.id !== fePendingDeleteId);
+    saveFixedExpenses();
+    closeDeleteModal();
+    renderFixedExpenses();
+    showToast('Gasto fijo eliminado.');
+    return;
+  }
   if (!pendingDeleteId) return;
   transactions = transactions.filter(t => t.id !== pendingDeleteId);
   saveTransactions();
@@ -759,12 +1029,13 @@ function confirmDelete() {
 // ─── Export / Import ──────────────────────────────────────────────────────────
 
 function exportData() {
-  if (transactions.length === 0) {
+  if (transactions.length === 0 && fixedExpenses.length === 0) {
     showToast('Nothing to export yet.');
     return;
   }
+  const exportObj = { transactions, fixedExpenses, exportedAt: Date.now() };
   const blob = new Blob(
-    [JSON.stringify(transactions, null, 2)],
+    [JSON.stringify(exportObj, null, 2)],
     { type: 'application/json' }
   );
   const url  = URL.createObjectURL(blob);
@@ -796,9 +1067,21 @@ function handleImport(e) {
   reader.onload = (evt) => {
     try {
       const parsed = JSON.parse(evt.target.result);
-      if (!Array.isArray(parsed)) throw new Error('Root must be an array');
 
-      const valid = parsed.filter(t =>
+      let incomingTx = [];
+      let incomingFe = [];
+
+      if (Array.isArray(parsed)) {
+        // Legacy format: bare transactions array
+        incomingTx = parsed;
+      } else if (parsed && typeof parsed === 'object') {
+        incomingTx = Array.isArray(parsed.transactions) ? parsed.transactions : [];
+        incomingFe = Array.isArray(parsed.fixedExpenses) ? parsed.fixedExpenses : [];
+      } else {
+        throw new Error('Unrecognised format');
+      }
+
+      const validTx = incomingTx.filter(t =>
         t && typeof t.id === 'string' &&
         (t.type === 'income' || t.type === 'expense') &&
         typeof t.amount === 'number' && t.amount > 0 &&
@@ -806,21 +1089,33 @@ function handleImport(e) {
         typeof t.category === 'string'
       );
 
-      if (valid.length === 0) {
-        showToast('No valid transactions found in file.');
-        return;
+      const existingTxIds = new Set(transactions.map(t => t.id));
+      const newTx = validTx.filter(t => !existingTxIds.has(t.id));
+      if (newTx.length > 0) {
+        transactions = [...transactions, ...newTx];
+        saveTransactions();
       }
 
-      // Merge: keep existing, add new ones by id
-      const existingIds = new Set(transactions.map(t => t.id));
-      const newOnes     = valid.filter(t => !existingIds.has(t.id));
+      const validFe = incomingFe.filter(fe =>
+        fe && typeof fe.id === 'string' &&
+        typeof fe.name === 'string' && fe.name.length > 0 &&
+        typeof fe.amount === 'number' && fe.amount > 0 &&
+        typeof fe.currency === 'string' && CURRENCIES[fe.currency] &&
+        typeof fe.category === 'string' &&
+        typeof fe.active === 'boolean'
+      );
+      const existingFeIds = new Set(fixedExpenses.map(fe => fe.id));
+      const newFe = validFe.filter(fe => !existingFeIds.has(fe.id));
+      if (newFe.length > 0) {
+        fixedExpenses = [...fixedExpenses, ...newFe];
+        saveFixedExpenses();
+      }
 
-      transactions = [...transactions, ...newOnes];
-      saveTransactions();
       renderAll();
 
-      const msg = newOnes.length > 0
-        ? `Imported ${newOnes.length} transaction${newOnes.length > 1 ? 's' : ''}.`
+      const total = newTx.length + newFe.length;
+      const msg = total > 0
+        ? `Imported ${newTx.length} transaction${newTx.length !== 1 ? 's' : ''} and ${newFe.length} fixed expense${newFe.length !== 1 ? 's' : ''}.`
         : 'All records already exist — nothing new imported.';
       showToast(msg);
     } catch {
@@ -974,6 +1269,7 @@ function handleAddCategory() {
   renderCatList();
   renderIconPicker();
   populateCategorySelect(currentType);
+  if (catModalType === 'expense') populateFeCategory();
   showToast(`"${newCat.label}" added.`);
 }
 
@@ -984,6 +1280,7 @@ function handleDeleteCategory(id, type) {
   saveCustomCategories();
   renderCatList();
   populateCategorySelect(currentType);
+  if (type === 'expense') populateFeCategory();
   renderCategoryFilters();
   showToast(`"${cat.label}" removed.`);
 }
@@ -1019,7 +1316,7 @@ async function pushToCloud() {
   }
   isSyncing = true;
   setSyncStatus('syncing');
-  const payload = { transactions, customCategories, lastModified: Date.now() };
+  const payload = { transactions, customCategories, fixedExpenses, lastModified: Date.now() };
   try {
     const res = await fetch(`${FIREBASE_DB_URL}/mamony/${syncKey}.json`, {
       method: 'PATCH',
@@ -1049,9 +1346,11 @@ async function pullFromCloud() {
     transactions     = Array.isArray(remote.transactions) ? remote.transactions : [];
     customCategories = (remote.customCategories && typeof remote.customCategories === 'object')
       ? remote.customCategories : { income: [], expense: [] };
+    fixedExpenses    = Array.isArray(remote.fixedExpenses) ? remote.fixedExpenses : [];
 
     localStorage.setItem(STORAGE_KEY,     JSON.stringify(transactions));
     localStorage.setItem(CUSTOM_CATS_KEY, JSON.stringify(customCategories));
+    localStorage.setItem(FE_STORAGE_KEY,  JSON.stringify(fixedExpenses));
     localStorage.setItem('mamony_last_modified', String(remote.lastModified));
     renderAll();
     showToast('Data synced from another device.');
@@ -1167,10 +1466,12 @@ function handleRemoteData(event) {
   transactions     = Array.isArray(remote.transactions) ? remote.transactions : [];
   customCategories = (remote.customCategories && typeof remote.customCategories === 'object')
     ? remote.customCategories : { income: [], expense: [] };
+  fixedExpenses    = Array.isArray(remote.fixedExpenses) ? remote.fixedExpenses : [];
 
   isSyncing = true;
   localStorage.setItem(STORAGE_KEY,     JSON.stringify(transactions));
   localStorage.setItem(CUSTOM_CATS_KEY, JSON.stringify(customCategories));
+  localStorage.setItem(FE_STORAGE_KEY,  JSON.stringify(fixedExpenses));
   localStorage.setItem('mamony_last_modified', String(remote.lastModified));
   isSyncing = false;
 
@@ -1197,10 +1498,12 @@ function handleRemotePatch(event) {
   transactions     = Array.isArray(remote.transactions) ? remote.transactions : [];
   customCategories = (remote.customCategories && typeof remote.customCategories === 'object')
     ? remote.customCategories : { income: [], expense: [] };
+  fixedExpenses    = Array.isArray(remote.fixedExpenses) ? remote.fixedExpenses : [];
 
   isSyncing = true;
   localStorage.setItem(STORAGE_KEY,     JSON.stringify(transactions));
   localStorage.setItem(CUSTOM_CATS_KEY, JSON.stringify(customCategories));
+  localStorage.setItem(FE_STORAGE_KEY,  JSON.stringify(fixedExpenses));
   localStorage.setItem('mamony_last_modified', String(remote.lastModified));
   isSyncing = false;
 
@@ -1313,7 +1616,7 @@ function todayDate() {
 async function pushBackup() {
   if (!syncKey || !FIREBASE_DB_URL) return;
   const date    = todayDate();
-  const payload = { transactions, customCategories, backedUpAt: Date.now() };
+  const payload = { transactions, customCategories, fixedExpenses, backedUpAt: Date.now() };
   try {
     const res = await fetch(`${FIREBASE_DB_URL}/mamony/${syncKey}/backups/${date}.json`, {
       method:  'PUT',
@@ -1354,6 +1657,7 @@ function scheduleDailyBackup() {
 function init() {
   transactions     = loadTransactions();
   customCategories = loadCustomCategories();
+  fixedExpenses    = loadFixedExpenses();
   loadRates();
   baseCurrency = localStorage.getItem(BASE_CURR_KEY) || 'PYG';
 
@@ -1363,6 +1667,7 @@ function init() {
   // Initialise type & currency
   setType('expense');
   setCurrency('PYG');
+  populateFeCategory();
 
   // Month nav
   document.getElementById('btnPrevMonth').addEventListener('click', prevMonth);
@@ -1392,8 +1697,30 @@ function init() {
 
   // Keyboard: Escape closes any open modal
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') { closeDeleteModal(); closeCatModal(); closeSyncModal(); closeApplePayGuide(); }
+    if (e.key === 'Escape') { closeDeleteModal(); closeCatModal(); closeSyncModal(); closeApplePayGuide(); closeFeModal(); }
   });
+
+  // Fixed Expenses section
+  document.getElementById('feToggle').addEventListener('click', toggleFeCollapse);
+  document.getElementById('btnAddFe').addEventListener('click', () => openFeModal());
+  document.getElementById('feList').addEventListener('click', e => {
+    const pauseBtn = e.target.closest('.fe-pause-btn');
+    if (pauseBtn) { toggleFePause(pauseBtn.dataset.feId); return; }
+    const editBtn = e.target.closest('.fe-edit-btn');
+    if (editBtn) { openFeModal(editBtn.dataset.feId); return; }
+    const delBtn = e.target.closest('.fe-del-btn');
+    if (delBtn) { openFeDeleteModal(delBtn.dataset.feId); return; }
+    const item = e.target.closest('.fe-item');
+    if (item) toggleFeExpand(item);
+  });
+  document.getElementById('feModal').addEventListener('click', e => {
+    if (e.target === document.getElementById('feModal')) closeFeModal();
+  });
+  document.getElementById('feModalClose').addEventListener('click', closeFeModal);
+  document.getElementById('feForm').addEventListener('submit', handleFeFormSubmit);
+  document.querySelectorAll('#feModal .fe-curr-btn').forEach(btn =>
+    btn.addEventListener('click', () => setFeModalCurrency(btn.dataset.currency))
+  );
 
   // Export / Import
   document.getElementById('btnExport').addEventListener('click',     exportData);

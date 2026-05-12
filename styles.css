@@ -879,3 +879,45 @@ select.form-input option,
   letter-spacing: 0.04em;
   word-break: break-all;
 }
+
+/* ─── Fixed Expenses ─────────────────────────────────────────────────────── */
+
+.fe-item.fe-paused { opacity: 0.45; }
+
+.fe-item.fe-paused .tx-amount,
+.fe-strikethrough {
+  text-decoration: line-through;
+  text-decoration-color: var(--expense-fg);
+}
+
+.fe-pause-btn:hover { background: #dbeafe; color: #1d4ed8; }
+.fe-edit-btn:hover  { background: #fef3c7; color: #92400e; }
+
+@media (prefers-color-scheme: dark) {
+  .fe-pause-btn:hover { background: #1e3a5f; color: #93c5fd; }
+  .fe-edit-btn:hover  { background: #422006; color: #fde68a; }
+}
+
+.fe-curr-btn {
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 5px 10px;
+  background: transparent;
+  color: var(--text-4);
+  cursor: pointer;
+  border: none;
+  border-right: 1px solid var(--border);
+  outline: none;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
+}
+.fe-curr-btn:last-child { border-right: none; }
+.fe-curr-btn.active-usd { background: #dbeafe; color: #1d4ed8; }
+.fe-curr-btn.active-pyg { background: #fef9c3; color: #92400e; }
+.fe-curr-btn.active-ars { background: #d1fae5; color: #065f46; }
+
+@media (prefers-color-scheme: dark) {
+  .fe-curr-btn.active-usd { background: #1e3a5f; color: #93c5fd; }
+  .fe-curr-btn.active-pyg { background: #422006; color: #fde68a; }
+  .fe-curr-btn.active-ars { background: #064e3b; color: #6ee7b7; }
+}
