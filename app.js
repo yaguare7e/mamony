@@ -1459,9 +1459,9 @@ async function pullFromCloud() {
     const remote = await res.json();
     if (!remote || typeof remote.lastModified !== 'number') return;
     const localModified = parseInt(localStorage.getItem('mamony_last_modified') || '0', 10);
+    const localEmpty = !localStorage.getItem(STORAGE_KEY) || localStorage.getItem(STORAGE_KEY) === '[]';
+    if (!localEmpty && remote.lastModified <= localModified) return;
 
-    // Always apply Firebase data at startup — pushToCloud doesn't update
-    // mamony_last_modified locally, so the timestamp comparison is unreliable.
     transactions     = Array.isArray(remote.transactions) ? remote.transactions : [];
     customCategories = (remote.customCategories && typeof remote.customCategories === 'object')
       ? remote.customCategories : { income: [], expense: [] };
